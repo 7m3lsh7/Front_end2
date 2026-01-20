@@ -3,6 +3,7 @@
 import React from 'react';
 import { Box, Container, Typography, Card, CardContent, Stack, CardActionArea, Grid } from '@mui/material';
 import Link from 'next/link';
+import SharedNavbar from '@/components/layout/SharedNavbar';
 
 export default function ViceDashboard() {
     const cards = [
@@ -27,6 +28,9 @@ export default function ViceDashboard() {
     ];
 
     return (
+        
+   <main>
+        <SharedNavbar/>
         <Box sx={{ position: 'relative', minHeight: '100vh', backgroundColor: '#f9f9f9' }}>
             {/* Full Page Background */}
             <Box
@@ -138,5 +142,6 @@ export default function ViceDashboard() {
                 </Container>
             </Box>
         </Box>
+        </main>
     );
 }
