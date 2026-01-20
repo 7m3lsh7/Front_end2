@@ -17,9 +17,7 @@ export default function StudentDashboard() {
         sx={{
           minHeight: "100vh",
           position: "relative",
-
           overflow: "hidden",
-
           "&::before": {
             content: '""',
             position: "absolute",
