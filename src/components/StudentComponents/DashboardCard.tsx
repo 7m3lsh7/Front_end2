@@ -2,7 +2,6 @@ import React from "react";
 import { Card, CardContent, Typography, Box, Divider } from "@mui/material";
 import BookIcon from "@/icons/book.svg";
 import FileIcon from "@/icons/file.svg";
-
 import Image from 'next/image';
 import { IconType } from "@/types/Icons";
 interface DashboardCardProps {
@@ -93,19 +92,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        backgroundImage: "url('/Images/image.jpeg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        p: 4,
-      }}
-    >
+    <Box>
       <Box
         sx={{
           display: "flex",
