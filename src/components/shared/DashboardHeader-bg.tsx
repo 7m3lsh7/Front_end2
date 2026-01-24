@@ -4,8 +4,8 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 
 interface DashboardHeaderProps {
-  name: string;
-  year: string;
+  name?: string;
+  year?: string;
   subtitle?: string;
   children?: React.ReactNode;
 }
@@ -18,27 +18,60 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   return (
     <Box
       sx={{
-        mb: 5,
-        textAlign: "left",
-        background: `
-          linear-gradient(
-            180deg,
-            rgba(132, 132, 132, 0.35),
-            rgba(30, 30, 30, 0.35)
-          )
-        `,
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
-        borderRadius: "50px",
-        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.35)",
-        border: "1px solid rgba(255, 255, 255, 0.15)",
-        padding: "48px",
-        maxWidth: "1200px",
+        position: "relative",
+        overflow: "hidden",
+        borderTopLeftRadius: { xs: "20px", md: "50px" },
+        borderTopRightRadius: { xs: "20px", md: "50px" },
+        padding: { xs: "20px", md: "50px" },
+        maxWidth: "1760px",
+        width: "100%",
+        mx: "auto",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+
+          backdropFilter: "blur(3px)",
+          WebkitBackdropFilter: "blur(14px)",
+
+          background: `
+      linear-gradient(
+        180deg,
+        rgba(255,255,255,0.08),
+        rgba(255,255,255,0)
+      )
+    `,
+
+          maskImage: `
+      linear-gradient(
+        180deg,
+        black 0%,
+        black 40%,
+        transparent 100%
+      )
+    `,
+          WebkitMaskImage: `
+      linear-gradient(
+        180deg,
+        black 0%,
+        black 40%,
+        transparent 100%
+      )
+    `,
+
+          zIndex: 0,
+        },
+
+        "& > *": {
+          position: "relative",
+          zIndex: 1,
+        },
       }}
+
     >
       {/* Header text */}
       <Typography variant="h2" sx={{ color: "white" }}>
-        Welcome, {name}
+        {name}
       </Typography>
 
       <Typography
@@ -55,7 +88,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       )}
 
       {children && (
-        <Box sx={{ mt: 4 }}>
+        <Box >
           {children}
         </Box>
       )}
