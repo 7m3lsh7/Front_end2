@@ -1,4 +1,19 @@
 "use client";
+/**
+ * LoginPage
+ * =========
+ * Main authentication entry point for the application.
+ *
+ * Responsibilities:
+ * - Collect user credentials (username, password)
+ * - Call the login API to authenticate the user
+ * - Redirect the user based on their assigned role
+ * - Automatically redirect already authenticated users
+ *
+ * Security Notes:
+ * - No tokens are stored in localStorage or sessionStorage
+ * - Authentication relies entirely on HttpOnly cookies
+ */
 
 import React, { useEffect, useState } from "react";
 import {
@@ -9,9 +24,10 @@ import {
     Button,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { useRouter } from "next/navigation";
 
-import { LoginPayload } from "@/types/login";
-import { initialLoginData } from "@/data/login";
+import { useAuth } from "@/context/AuthContext";
+import { getRedirectPathByRole } from "@/utils/auth-redirect";
 
 const images = [
     "/Images/login/1.jpg",
@@ -33,13 +49,13 @@ const logos = [
 
 const LoginPage = () => {
     const theme = useTheme();
+    const router = useRouter();
+    const { login, isAuthenticated, user, loading } = useAuth();
 
-    // ===== state =====
     const [currentImage, setCurrentImage] = useState(0);
-    
-    const [loginData, setLoginData] =
-        useState<LoginPayload>(initialLoginData);
-    const [loading, setLoading] = useState(false);
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
 
     // ===== carousel =====
     useEffect(() => {
@@ -50,29 +66,26 @@ const LoginPage = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // ===== لو المستخدم already logged in =====
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            const path = getRedirectPathByRole(user.role);
+            router.replace(path);
+        }
+    }, [isAuthenticated, user, router]);
 
     // ===== handlers =====
-    const handleChange =
-        (field: keyof LoginPayload) =>
-            (e: React.ChangeEvent<HTMLInputElement>) => {
-                setLoginData((prev) => ({
-                    ...prev,
-                    [field]: e.target.value,
-                }));
-            };
-
     const handleLogin = async () => {
-        setLoading(true);
+        setError(null);
+
         try {
-            console.log("Login Payload:", loginData);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
+            const loggedUser = await login(username, password);
+            const redirectPath = getRedirectPathByRole(loggedUser.role);
+            router.replace(redirectPath);
+        } catch (err: any) {
+            setError("Invalid username or password");
         }
     };
-
-
 
     return (
         <Box sx={{ minHeight: "100vh", display: "flex" }}>
@@ -93,8 +106,6 @@ const LoginPage = () => {
                             justifyContent: "center",
                             gap: 3,
                             mb: 3,
-                            transition: "all 0.6s ease",
-                            
                         }}
                     >
                         {logos.map((src, index) => (
@@ -107,12 +118,10 @@ const LoginPage = () => {
                                     width: 150,
                                     height: 150,
                                     objectFit: "contain",
-                                    transition: "transform 0.6s ease",
                                 }}
                             />
                         ))}
                     </Box>
-
 
                     {/* Login Card */}
                     <Card
@@ -120,17 +129,6 @@ const LoginPage = () => {
                             p: 4,
                             borderRadius: "20px",
                             boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-                            animation: "slideFade 0.8s ease",
-                            "@keyframes slideFade": {
-                                from: {
-                                    opacity: 0,
-                                    transform: "translateY(20px)",
-                                },
-                                to: {
-                                    opacity: 1,
-                                    transform: "translateY(0)",
-                                },
-                            },
                         }}
                     >
                         <Typography variant="h2" mb={1}>
@@ -148,8 +146,8 @@ const LoginPage = () => {
                         <TextField
                             fullWidth
                             label="Username"
-                            value={loginData.username}
-                            onChange={handleChange("username")}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             sx={{ mb: 2 }}
                         />
 
@@ -157,10 +155,16 @@ const LoginPage = () => {
                             fullWidth
                             label="Password"
                             type="password"
-                            value={loginData.password}
-                            onChange={handleChange("password")}
-                            sx={{ mb: 3 }}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            sx={{ mb: 2 }}
                         />
+
+                        {error && (
+                            <Typography color="error" mb={2}>
+                                {error}
+                            </Typography>
+                        )}
 
                         <Button
                             fullWidth
@@ -211,10 +215,8 @@ const LoginPage = () => {
                         backgroundImage: `url(${images[currentImage]})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
-                        transition: "background-image 1s ease-in-out",
                     }}
                 >
-                    {/* Overlay */}
                     <Box
                         sx={{
                             position: "absolute",
@@ -223,57 +225,6 @@ const LoginPage = () => {
                                 "linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.9))",
                         }}
                     />
-
-                    {/* Animated Text */}
-                    <Box
-                        key={currentImage}
-                        sx={{
-                            position: "absolute",
-                            bottom: 60,
-                            left: 60,
-                            color: "#fff",
-                            maxWidth: 420,
-                            animation: "fadeUp 0.8s ease",
-                            "@keyframes fadeUp": {
-                                from: {
-                                    opacity: 0,
-                                    transform: "translateY(20px)",
-                                },
-                                to: {
-                                    opacity: 1,
-                                    transform: "translateY(0)",
-                                },
-                            },
-                        }}
-                    >
-                        <Typography variant="h2" mb={2} fontWeight={700}>
-                            Welcome to EVA Pharma
-                        </Typography>
-
-                        <Typography variant="body1" sx={{ opacity: 0.85 }}>
-                            Secure access to administrative tools, student records,
-                            and internal systems.
-                        </Typography>
-
-                        {/* Indicators */}
-                        <Box sx={{ display: "flex", gap: 1, mt: 3 }}>
-                            {images.map((_, index) => (
-                                <Box
-                                    key={index}
-                                    sx={{
-                                        width: currentImage === index ? 24 : 8,
-                                        height: 8,
-                                        borderRadius: 4,
-                                        backgroundColor:
-                                            currentImage === index
-                                                ? "#fff"
-                                                : "rgba(255,255,255,0.4)",
-                                        transition: "all 0.3s ease",
-                                    }}
-                                />
-                            ))}
-                        </Box>
-                    </Box>
                 </Box>
             </Box>
         </Box>
