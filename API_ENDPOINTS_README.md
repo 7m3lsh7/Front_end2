@@ -434,26 +434,6 @@ await TeacherAssignmentsAPI.create({
 });
 ```
 
----
-
-## 🛠️ Configuration
-
-### API Base URL
-The base URL is determined by the environment variable:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-```
-
-If not specified, the default value will be used: `http://localhost:5000/api`
-
-### secureFetch
-All API calls use `secureFetch` from `@/config/api.config`:
-- Automatically sends `credentials: "include"`
-- Automatically adds `Content-Type: application/json`
-- Handles errors uniformly
-
----
-
 ## 📋 Summary
 
 | Endpoint | Method | Auth Required | Description |
