@@ -1,79 +1,277 @@
-'use client';
-import { Box, Button, TextField, Typography, Paper, Container } from '@mui/material';
-import { useState } from 'react';
+"use client";
+/**
+ * LoginPage
+ * =========
+ * Main authentication entry point for the application.
+ *
+ * Responsibilities:
+ * - Collect user credentials (username, password)
+ * - Call the login API to authenticate the user
+ * - Redirect the user based on their assigned role
+ * - Automatically redirect already authenticated users
+ *
+ * Security Notes:
+ * - No tokens are stored in localStorage or sessionStorage
+ * - Authentication relies entirely on HttpOnly cookies
+ */
 
-export default function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+import React, { useEffect, useState } from "react";
+import {
+    Box,
+    Card,
+    Typography,
+    TextField,
+    Button,
+} from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { useRouter } from "next/navigation";
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // TODO: Implement login logic
-        console.log('Login attempt:', { email, password });
+import { useAuth } from "@/context/AuthContext";
+import { getRedirectPathByRole } from "@/utils/auth-redirect";
+
+const images = [
+    "/Images/login/1.jpg",
+    "/Images/login/2.jpg",
+    "/Images/login/3.jpg",
+    "/Images/login/4.jpg",
+    "/Images/login/5.jpg",
+    "/Images/login/6.jpg",
+    "/Images/login/7.jpg",
+    "/Images/login/8.jpg",
+    "/Images/login/9.jpg",
+    "/Images/login/10.jpg",
+];
+
+const logos = [
+    "/Images/login/logo.png",
+    "/Images/login/logo2.png",
+];
+
+const LoginPage = () => {
+    const theme = useTheme();
+    const router = useRouter();
+    const { login, isAuthenticated, user, loading } = useAuth();
+
+    const [currentImage, setCurrentImage] = useState(0);
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
+
+    // ===== carousel =====
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentImage((prev) => (prev + 1) % images.length);
+        }, 9000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    // ===== لو المستخدم already logged in =====
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            const path = getRedirectPathByRole(user.role);
+            router.replace(path);
+        }
+    }, [isAuthenticated, user, router]);
+
+    // ===== handlers =====
+    const handleLogin = async () => {
+        setError(null);
+
+        // Input validation and sanitization
+        const sanitizedUsername = username.trim();
+        const sanitizedPassword = password.trim();
+
+        // Validate inputs
+        if (!sanitizedUsername) {
+            setError("Username is required");
+            return;
+        }
+
+        if (!sanitizedPassword) {
+            setError("Password is required");
+            return;
+        }
+
+        // Basic length validation to prevent extremely long inputs
+        if (sanitizedUsername.length > 100) {
+            setError("Username is too long");
+            return;
+        }
+
+        if (sanitizedPassword.length > 200) {
+            setError("Password is too long");
+            return;
+        }
+
+        // Sanitize to prevent XSS (remove potentially dangerous characters)
+        const sanitizeInput = (input: string) => {
+            return input.replace(/[<>\"']/g, "");
+        };
+
+        try {
+            const loggedUser = await login(
+                sanitizeInput(sanitizedUsername),
+                sanitizedPassword // Don't sanitize password as it may contain special chars
+            );
+            const redirectPath = getRedirectPathByRole(loggedUser.role);
+            router.replace(redirectPath);
+        } catch {
+            // Generic error message to prevent user enumeration
+            setError("Invalid username or password");
+        }
     };
 
     return (
-        <Container maxWidth="sm">
+        <Box sx={{ minHeight: "100vh", display: "flex" }}>
+            {/* Right - Login */}
             <Box
                 sx={{
-                    minHeight: '100vh',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    width: { xs: "100%", md: "40%" },
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                 }}
             >
-                <Paper
-                    elevation={3}
-                    sx={{
-                        p: 4,
-                        width: '100%',
-                        borderRadius: 2,
-                    }}
-                >
-                    <Typography variant="h4" component="h1" gutterBottom textAlign="center">
-                        Login
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
-                        Sign in to School Grading System
-                    </Typography>
+                <Box sx={{ width: "100%", maxWidth: 420 }}>
+                    {/* Logos */}
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 3,
+                            mb: 3,
+                        }}
+                    >
+                        {logos.map((src, index) => (
+                            <Box
+                                key={index}
+                                component="img"
+                                src={src}
+                                alt={`logo-${index}`}
+                                sx={{
+                                    width: 150,
+                                    height: 150,
+                                    objectFit: "contain",
+                                }}
+                            />
+                        ))}
+                    </Box>
 
-                    <Box component="form" onSubmit={handleSubmit}>
+                    {/* Login Card */}
+                    <Card
+                        sx={{
+                            p: 4,
+                            borderRadius: "20px",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+                        }}
+                    >
+                        <Typography variant="h2" mb={1}>
+                            Admin Portal
+                        </Typography>
+
+                        <Typography
+                            variant="body2"
+                            color={theme.palette.text.secondary}
+                            mb={3}
+                        >
+                            Sign in to access student records and grade management.
+                        </Typography>
+
                         <TextField
                             fullWidth
-                            label="Email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            margin="normal"
-                            required
+                            label="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            sx={{ mb: 2 }}
+                            autoComplete="username"
+                            inputProps={{
+                                maxLength: 100,
+                            }}
                         />
+
                         <TextField
                             fullWidth
                             label="Password"
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            margin="normal"
-                            required
+                            sx={{ mb: 2 }}
+                            autoComplete="current-password"
+                            inputProps={{
+                                maxLength: 200,
+                            }}
                         />
+
+                        {error && (
+                            <Typography color="error" mb={2}>
+                                {error}
+                            </Typography>
+                        )}
+
                         <Button
-                            type="submit"
                             fullWidth
-                            variant="contained"
+                            disabled={loading}
+                            onClick={handleLogin}
                             sx={{
-                                mt: 3,
-                                mb: 2,
-                                py: 1.5,
-                                backgroundColor: '#ffc107',
-                                color: '#000',
-                                '&:hover': { backgroundColor: '#e0a800' },
+                                backgroundColor: theme.palette.primary.main,
+                                color: theme.palette.primary.contrastText,
+                                height: 44,
+                                borderRadius: "10px",
+                                boxShadow: "none",
+                                "&:hover": {
+                                    backgroundColor: theme.palette.primary.dark,
+                                },
                             }}
                         >
-                            Sign In
+                            <Typography variant="h3">
+                                {loading ? "Signing In..." : "Sign In"}
+                            </Typography>
                         </Button>
-                    </Box>
-                </Paper>
+
+                        <Typography
+                            variant="body2"
+                            textAlign="center"
+                            mt={3}
+                            color={theme.palette.text.secondary}
+                        >
+                            Don’t have an account?{" "}
+                            <strong>Contact your administrator</strong>
+                        </Typography>
+                    </Card>
+                </Box>
             </Box>
-        </Container>
+
+            {/* Left - Carousel */}
+            <Box
+                sx={{
+                    display: { xs: "none", md: "block" },
+                    width: "90%",
+                    position: "relative",
+                    overflow: "hidden",
+                }}
+            >
+                <Box
+                    sx={{
+                        width: "100%",
+                        height: "100%",
+                        backgroundImage: `url(${images[currentImage]})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: "absolute",
+                            inset: 0,
+                            background:
+                                "linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.9))",
+                        }}
+                    />
+                </Box>
+            </Box>
+        </Box>
     );
-}
+};
+
+export default LoginPage;

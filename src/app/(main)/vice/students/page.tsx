@@ -5,13 +5,17 @@ import { Box, Container, Typography, Stack, Button, Card, MenuItem, Select, Form
 import AddIcon from '@mui/icons-material/Add';
 import Link from 'next/link';
 import { useState } from 'react';
-import AddStudentModal from '@/src/components/vice/students/AddStudentModal';
+import SharedNavbar from "@/components/layout/SharedNavbar";
+import AddStudentModal from '@/components/vice/students/AddStudentModal';
 
 export default function ViceStudentsPage() {
     const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
 
     return (
-        // Main Content Card
+           <>
+        <SharedNavbar/>
+        {/* Main Content Card */}
+
         <Box sx={{ position: 'relative', minHeight: '100vh', paddingBottom: 4 }}>
             {/* Page Header Area */}
             <Box sx={{ py: 4, position: 'relative' }}>
@@ -256,5 +260,6 @@ export default function ViceStudentsPage() {
                 onClose={() => setIsAddStudentModalOpen(false)}
             />
         </Box >
+        </>
     );
 }
