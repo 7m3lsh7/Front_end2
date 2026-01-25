@@ -21,22 +21,47 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const { username, password } = req.body;
 
+    // Input validation
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+    }
+
+    // Sanitize inputs
+    const sanitizedUsername = String(username).trim();
+    const sanitizedPassword = String(password).trim();
+
+    // Length validation
+    if (sanitizedUsername.length > 100 || sanitizedPassword.length > 200) {
+        return res.status(400).json({ message: "Invalid input length" });
+    }
+
+    // Determine if production (HTTPS) or development
+    const isProduction = process.env.NODE_ENV === "production";
+    const cookieOptions = [
+        "HttpOnly",
+        "Path=/",
+        `Max-Age=3600`,
+        isProduction ? "Secure" : "", // Secure flag only in production (HTTPS)
+        "SameSite=Strict", // CSRF protection
+    ].filter(Boolean).join("; ");
+
     // Mock validation
-    if (username === "student" && password === "1234") {
-        // Set HttpOnly cookie
-        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; HttpOnly; Path=/; Max-Age=3600`);
+    if (sanitizedUsername === "student" && sanitizedPassword === "1234") {
+        // Set HttpOnly cookie with security flags
+        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; ${cookieOptions}`);
         return res.status(200).json({ role: "Student" });
     }
 
-    if (username === "teacher" && password === "1234") {
-        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; HttpOnly; Path=/; Max-Age=3600`);
+    if (sanitizedUsername === "teacher" && sanitizedPassword === "1234") {
+        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; ${cookieOptions}`);
         return res.status(200).json({ role: "Teacher" });
     }
 
-    if (username === "admin" && password === "1234") {
-        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; HttpOnly; Path=/; Max-Age=3600`);
+    if (sanitizedUsername === "admin" && sanitizedPassword === "1234") {
+        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; ${cookieOptions}`);
         return res.status(200).json({ role: "Admin" });
     }
 
-    return res.status(401).json({ message: "Invalid r password" });
+    // Generic error message to prevent user enumeration
+    return res.status(401).json({ message: "Invalid username or password" });
 }

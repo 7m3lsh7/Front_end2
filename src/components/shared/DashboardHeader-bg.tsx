@@ -88,7 +88,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       )}
 
       {children && (
-        <Box >
+        <Box  sx={{ mt: 4 }} >
           {children}
         </Box>
       )}

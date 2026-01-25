@@ -78,11 +78,46 @@ const LoginPage = () => {
     const handleLogin = async () => {
         setError(null);
 
+        // Input validation and sanitization
+        const sanitizedUsername = username.trim();
+        const sanitizedPassword = password.trim();
+
+        // Validate inputs
+        if (!sanitizedUsername) {
+            setError("Username is required");
+            return;
+        }
+
+        if (!sanitizedPassword) {
+            setError("Password is required");
+            return;
+        }
+
+        // Basic length validation to prevent extremely long inputs
+        if (sanitizedUsername.length > 100) {
+            setError("Username is too long");
+            return;
+        }
+
+        if (sanitizedPassword.length > 200) {
+            setError("Password is too long");
+            return;
+        }
+
+        // Sanitize to prevent XSS (remove potentially dangerous characters)
+        const sanitizeInput = (input: string) => {
+            return input.replace(/[<>\"']/g, "");
+        };
+
         try {
-            const loggedUser = await login(username, password);
+            const loggedUser = await login(
+                sanitizeInput(sanitizedUsername),
+                sanitizedPassword // Don't sanitize password as it may contain special chars
+            );
             const redirectPath = getRedirectPathByRole(loggedUser.role);
             router.replace(redirectPath);
-        } catch (err: any) {
+        } catch {
+            // Generic error message to prevent user enumeration
             setError("Invalid username or password");
         }
     };
@@ -149,6 +184,10 @@ const LoginPage = () => {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             sx={{ mb: 2 }}
+                            autoComplete="username"
+                            inputProps={{
+                                maxLength: 100,
+                            }}
                         />
 
                         <TextField
@@ -158,6 +197,10 @@ const LoginPage = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             sx={{ mb: 2 }}
+                            autoComplete="current-password"
+                            inputProps={{
+                                maxLength: 200,
+                            }}
                         />
 
                         {error && (
