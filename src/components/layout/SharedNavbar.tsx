@@ -171,7 +171,7 @@ export default function SharedNavbar() {
                 anchor="right"
                 open={openDrawer}
                 onClose={() => setOpenDrawer(false)}
-                mainProps={{
+                PaperProps={{
                     sx: {
                         width: '80%',
                         height: '100%',
@@ -180,6 +180,7 @@ export default function SharedNavbar() {
                     },
                 }}
             >
+
                 {/* Drawer Header */}
                 <Stack
                     direction="row"
