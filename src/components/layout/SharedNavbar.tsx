@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     AppBar,
     Toolbar,
@@ -21,22 +21,34 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 import { navbarData } from '@/data/navbar';
+import { useAuth } from '@/hooks/useAuth';
 
 const LOGO_SRC = '/images/login/logo.png';
+
+const studentNavLinks = [
+    { label: 'Home', href: '/student' },
+    { label: 'Years', href: '/student/years' },
+];
 
 export default function SharedNavbar() {
     const theme = useTheme();
     const [openDrawer, setOpenDrawer] = useState(false);
+    const { user } = useAuth();
 
     const {
         title,
         subtitle,
-        centerLinks,
+        centerLinks: defaultCenterLinks,
         profileHref,
         userName,
         userRole,
         logoutHref,
     } = navbarData;
+
+    const centerLinks = useMemo(
+        () => (user?.role === 'Student' ? studentNavLinks : defaultCenterLinks),
+        [user?.role, defaultCenterLinks]
+    );
 
     return (
         <>
