@@ -16,7 +16,8 @@ export const palette: PaletteOptions = {
     // Background
     background: {
         default: "#f4f6f8",
-        paper: "#ffffff",
+        paper: "rgba(255, 255, 255, 0.88)",
+        main:"#ffffff"
     },
 
     // Text
@@ -25,7 +26,7 @@ export const palette: PaletteOptions = {
         secondary: "#757575",
     },
     
-    divider: "#e0e0e0",
+    divider: "rgba(81, 81, 81, 0.3)",
 
     action: {
         hover: "#ffcdd2",

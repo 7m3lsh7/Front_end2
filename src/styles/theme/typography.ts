@@ -100,5 +100,15 @@ export const typography: ThemeOptions["typography"] = {
             fontSize: "20px",
         },
     },
+    body4: {
+        fontWeight: 500,
+        fontSize: "25px",
+        "@media (max-width:1838px)": {
+            fontSize: "22px",
+        },
+        "@media (max-width:1024px)": {
+            fontSize: "20px",
+        },
+    },
 
 };

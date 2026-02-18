@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     AppBar,
     Toolbar,
@@ -21,22 +21,34 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 import { navbarData } from '@/data/navbar';
+import { useAuth } from '@/hooks/useAuth';
 
 const LOGO_SRC = '/images/login/logo.png';
+
+const studentNavLinks = [
+    { label: 'Home', href: '/student' },
+    { label: 'Years', href: '/student/years' },
+];
 
 export default function SharedNavbar() {
     const theme = useTheme();
     const [openDrawer, setOpenDrawer] = useState(false);
+    const { user } = useAuth();
 
     const {
         title,
         subtitle,
-        centerLinks,
+        centerLinks: defaultCenterLinks,
         profileHref,
         userName,
         userRole,
         logoutHref,
     } = navbarData;
+
+    const centerLinks = useMemo(
+        () => (user?.role === 'Student' ? studentNavLinks : defaultCenterLinks),
+        [user?.role, defaultCenterLinks]
+    );
 
     return (
         <>
@@ -131,13 +143,13 @@ export default function SharedNavbar() {
                             </Box>
                         </Button>
 
-                            {/* Burger Menu (Mobile) */}
-                            <IconButton
-                                onClick={() => setOpenDrawer(true)}
-                                sx={{ display: { xs: 'flex', md: 'none' } }}
-                            >
-                                <MenuIcon />
-                            </IconButton>
+                        {/* Burger Menu (Mobile) */}
+                        <IconButton
+                            onClick={() => setOpenDrawer(true)}
+                            sx={{ display: { xs: 'flex', md: 'none' } }}
+                        >
+                            <MenuIcon />
+                        </IconButton>
                         {/* Icons (Desktop) */}
                         <IconButton
                             sx={{
@@ -219,7 +231,7 @@ export default function SharedNavbar() {
                 {/* Bottom Actions */}
                 <Box mt="auto" px={2} pb={3}>
                     <Stack
-                        
+
                         spacing={2}>
                         <Button
                             startIcon={<LanguageIcon />}
@@ -229,7 +241,7 @@ export default function SharedNavbar() {
                                 justifyContent: 'flex-start',
                                 textTransform: 'none',
                                 borderRadius: '12px',
-                                p:2
+                                p: 2
                             }}
                         >
                             Language
@@ -250,7 +262,7 @@ export default function SharedNavbar() {
                         >
                             Logout
                         </Button>
-                    </Stack>  
+                    </Stack>
                 </Box>
             </Drawer>
         </>
