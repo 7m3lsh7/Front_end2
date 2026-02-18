@@ -111,4 +111,37 @@ export const typography: ThemeOptions["typography"] = {
         },
     },
 
+    },
+
+    body2: {
+        fontWeight: 400,
+        fontSize: "16px",
+        "@media (max-width:1838px)": {
+            fontSize: "15px",
+        },
+        "@media (max-width:1024px)": {
+            fontSize: "13px",
+        },
+    },
+    body3: {
+        fontWeight: 700,
+        fontSize: "25px",
+        "@media (max-width:1838px)": {
+            fontSize: "22px",
+        },
+        "@media (max-width:1024px)": {
+            fontSize: "20px",
+        },
+    },
+    body4: {
+        fontWeight: 500,
+        fontSize: "25px",
+        "@media (max-width:1838px)": {
+            fontSize: "22px",
+        },
+        "@media (max-width:1024px)": {
+            fontSize: "20px",
+        },
+    },
+
 };
