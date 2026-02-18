@@ -20,6 +20,7 @@ import SharedNavbar from "@/components/layout/SharedNavbar";
 import { profileService } from "@/services/profile.service";
 import { useAuth } from "@/context/AuthContext";
 
+
 const TeacherProfilePage = () => {
     const theme = useTheme();
     const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -123,6 +124,8 @@ const TeacherProfilePage = () => {
     return (
         <>
         <SharedNavbar/>
+        <>
+        <SharedNavbar/>
         <Box
             sx={{
                 minHeight: "100vh",
@@ -209,6 +212,8 @@ const TeacherProfilePage = () => {
             />
             </Box>
         </>
+            </Box>
+        </>
     );
 };
 
@@ -271,6 +276,9 @@ const EditProfileDialog = ({
                 </Button>
             </DialogContent>
         </Dialog>
+            );
+        
+        
             );
         
         

@@ -6,7 +6,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import theme from "@/styles/theme";
 import { AuthProvider } from '../context/AuthContext';
-
+import { StudentYearProvider } from '../context/StudentYearContext';
 const queryClient = new QueryClient();
 
 export default function RootLayout({
@@ -21,7 +21,9 @@ export default function RootLayout({
           <CssBaseline />
             <QueryClientProvider client={queryClient}>
               <AuthProvider>
+                <StudentYearProvider>
                   {children}
+                </StudentYearProvider>
               </AuthProvider>
             </QueryClientProvider>
         </ThemeProvider>

@@ -48,7 +48,7 @@ const Filter = () => {
     return (
         <Box
             sx={{
-                backgroundColor: theme.palette.background.paper,
+                backgroundColor: theme.palette.background.main,
                 padding: "24px",
                 display: "flex",
                 flexDirection: "column",
