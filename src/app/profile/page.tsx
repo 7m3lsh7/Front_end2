@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Box,
     Card,
@@ -15,16 +15,114 @@ import {
 import { useTheme } from "@mui/material/styles";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
-import { teacherProfileData } from "@/data/profile";
 import { ProfileData } from "@/types/profile";
+import SharedNavbar from "@/components/layout/SharedNavbar";
+import { profileService } from "@/services/profile.service";
+import { useAuth } from "@/context/AuthContext";
 
 const TeacherProfilePage = () => {
     const theme = useTheme();
+    const { user, isAuthenticated, loading: authLoading } = useAuth();
     const [open, setOpen] = useState(false);
+    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const profile: ProfileData = teacherProfileData;
+    useEffect(() => {
+        if (!isAuthenticated || !user) return;
+
+        let isMounted = true;
+        setLoading(true);
+        setError(null);
+
+        profileService
+            .getMyProfile()
+            .then((data) => {
+                if (!isMounted) return;
+                // Map API response to ProfileData if needed
+                const mapped: ProfileData = {
+                    fullName: data.fullName,
+                    username: data.username,
+                    role: data.role,
+                    subject: data.subject,
+                    academicYear: data.academicYear,
+                    status: data.status,
+                };
+                setProfile(mapped);
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setError("Failed to load profile");
+            })
+            .finally(() => {
+                if (!isMounted) return;
+                setLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated, user]);
+
+    if (authLoading || loading) {
+        return (
+            <>
+                <SharedNavbar />
+                <Box
+                    sx={{
+                        minHeight: "100vh",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <Typography variant="h2">Loading profile...</Typography>
+                </Box>
+            </>
+        );
+    }
+
+    if (!isAuthenticated || !user) {
+        return (
+            <>
+                <SharedNavbar />
+                <Box
+                    sx={{
+                        minHeight: "100vh",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <Typography variant="h2">You must be logged in to view this page.</Typography>
+                </Box>
+            </>
+        );
+    }
+
+    if (error || !profile) {
+        return (
+            <>
+                <SharedNavbar />
+                <Box
+                    sx={{
+                        minHeight: "100vh",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <Typography variant="h2">
+                        {error || "Profile not available"}
+                    </Typography>
+                </Box>
+            </>
+        );
+    }
 
     return (
+        <>
+        <SharedNavbar/>
         <Box
             sx={{
                 minHeight: "100vh",
@@ -109,7 +207,8 @@ const TeacherProfilePage = () => {
                 onClose={() => setOpen(false)}
                 username={profile.username}
             />
-        </Box>
+            </Box>
+        </>
     );
 };
 
@@ -131,9 +230,9 @@ const EditProfileDialog = ({
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
             <DialogContent sx={{ p: 4 }}>
-                <Typography variant="h2" sx={{ mb: 3 }}>
-                    Edit Profile
-                </Typography>
+                    <Typography variant="h2" sx={{ mb: 3 }}>
+                        Edit Profile
+                    </Typography>
 
                 <TextField
                     fullWidth
@@ -172,7 +271,9 @@ const EditProfileDialog = ({
                 </Button>
             </DialogContent>
         </Dialog>
-    );
+            );
+        
+        
 };
 
 /* ================= Info Item ================= */

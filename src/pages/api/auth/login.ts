@@ -24,17 +24,29 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     // Mock validation
     if (username === "student" && password === "1234") {
         // Set HttpOnly cookie
-        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; HttpOnly; Path=/; Max-Age=3600`);
+        res.setHeader(
+            "Set-Cookie",
+            `access_token=${username}; HttpOnly; Path=/; Max-Age=3600`
+          );
+          
         return res.status(200).json({ role: "Student" });
     }
 
     if (username === "teacher" && password === "1234") {
-        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; HttpOnly; Path=/; Max-Age=3600`);
+        res.setHeader(
+            "Set-Cookie",
+            `access_token=${username}; HttpOnly; Path=/; Max-Age=3600`
+          );
+          
         return res.status(200).json({ role: "Teacher" });
     }
 
     if (username === "admin" && password === "1234") {
-        res.setHeader("Set-Cookie", `access_token=mock-jwt-token; HttpOnly; Path=/; Max-Age=3600`);
+        res.setHeader(
+            "Set-Cookie",
+            `access_token=${username}; HttpOnly; Path=/; Max-Age=3600`
+          );
+          
         return res.status(200).json({ role: "Admin" });
     }
 
