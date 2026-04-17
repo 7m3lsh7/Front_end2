@@ -17,7 +17,7 @@ import type {
   JadaratGradesResponse,
 } from "@/types/Student-api/grades";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://evaschool.runasp.net/api";
 
 export interface StudentProfileResponse {
   name: string;
