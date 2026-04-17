@@ -30,6 +30,9 @@ export type UserRole = "Admin" | "Teacher" | "Student";
 export interface AuthUser {
     userId: number;
     role: UserRole;
+    username: string;
+
+
 }
 
 interface AuthContextType {

@@ -14,10 +14,20 @@ const SharedCard: React.FC<SharedCardProps> = ({
   const theme = useTheme();
 
   return (
+<<<<<<< HEAD
     <Link href={href} style={{ textDecoration: "none" }}>
       <Card
         tabIndex={0}
         sx={{
+=======
+
+      <Card
+      component={Link}
+      href={href}
+        tabIndex={0}
+        sx={{
+          textDecoration: "none" ,
+>>>>>>> a4e0ea5a8280e355608569163c10e2a29430e494
           width: "100%",
           maxWidth: 505,
           height: 270,
@@ -85,7 +95,11 @@ const SharedCard: React.FC<SharedCardProps> = ({
           </Box>
         </Box>
       </Card>
+<<<<<<< HEAD
     </Link>
+=======
+
+>>>>>>> a4e0ea5a8280e355608569163c10e2a29430e494
   );
 };
 

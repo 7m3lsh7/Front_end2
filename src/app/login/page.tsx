@@ -66,7 +66,7 @@ const LoginPage = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // ===== لو المستخدم already logged in =====
+    
     useEffect(() => {
         if (isAuthenticated && user) {
             const path = getRedirectPathByRole(user.role);

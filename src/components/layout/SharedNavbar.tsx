@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     AppBar,
     Toolbar,
@@ -19,24 +19,39 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import LanguageIcon from '@mui/icons-material/Language';
 import Link from 'next/link';
 import Image from 'next/image';
-
+import { useRouter } from 'next/navigation';
 import { navbarData } from '@/data/navbar';
+import { useAuth } from '@/hooks/useAuth';
 
 const LOGO_SRC = '/images/login/logo.png';
+
+const studentNavLinks = [
+    { label: 'Home', href: '/student' },
+    { label: 'Years', href: '/student/years' },
+];
 
 export default function SharedNavbar() {
     const theme = useTheme();
     const [openDrawer, setOpenDrawer] = useState(false);
-
+    const { user, logout } = useAuth();
+    const router = useRouter();
     const {
         title,
         subtitle,
-        centerLinks,
+        centerLinks: defaultCenterLinks,
         profileHref,
         userName,
         userRole,
         logoutHref,
     } = navbarData;
+    const handleLogout = async () => {
+        await logout();   
+        router.replace("/login"); 
+    };
+    const centerLinks = useMemo(
+        () => (user?.role === 'Student' ? studentNavLinks : defaultCenterLinks),
+        [user?.role, defaultCenterLinks]
+    );
 
     return (
         <>
@@ -45,7 +60,7 @@ export default function SharedNavbar() {
                 position="sticky"
                 elevation={0}
                 sx={{
-                    backgroundColor: theme.palette.background.main,
+                    backgroundColor: theme.palette.background.paper,
                     color: theme.palette.text.primary,
                     borderRadius: '0 0 24px 24px',
                     boxShadow: '0px 4px 20px rgba(0,0,0,0.05)',
@@ -110,6 +125,7 @@ export default function SharedNavbar() {
                     <Stack direction="row" alignItems="center" spacing={1}>
 
                         {/* User */}
+                        {user && (
                         <Button
                             component={Link}
                             href={profileHref}
@@ -124,13 +140,13 @@ export default function SharedNavbar() {
                         >
                             <Avatar sx={{ width: 32, height: 32 }} />
                             <Box sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
-                                <Typography variant="body1">{userName}</Typography>
+                                <Typography variant="body1">{user.username}</Typography>
                                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                    {userRole}
+                                    {user.role}
                                 </Typography>
                             </Box>
                         </Button>
-
+                        )}
                         {/* Burger Menu (Mobile) */}
                         <IconButton
                             onClick={() => setOpenDrawer(true)}
@@ -149,10 +165,9 @@ export default function SharedNavbar() {
                         >
                             <LanguageIcon />
                         </IconButton>
-
+{user && (
                         <IconButton
-                            component={Link}
-                            href={logoutHref}
+                            onClick={handleLogout}
                             sx={{
                                 display: { xs: 'none', md: 'flex' },
                                 backgroundColor: theme.palette.error.main,
@@ -162,6 +177,7 @@ export default function SharedNavbar() {
                         >
                             <LogoutIcon />
                         </IconButton>
+)}
                     </Stack>
                 </Toolbar>
             </AppBar>
@@ -175,7 +191,7 @@ export default function SharedNavbar() {
                     sx: {
                         width: '80%',
                         height: '100%',
-                        backgroundColor: theme.palette.background.main,
+                        backgroundColor: theme.palette.background.paper,
                         borderRadius: '16px 0 0 16px',
                     },
                 }}
@@ -235,22 +251,22 @@ export default function SharedNavbar() {
                         >
                             Language
                         </Button>
-
+{user && (
                         <Button
-                            component={Link}
-                            href={logoutHref}
-                            startIcon={<LogoutIcon />}
-                            sx={{
-                                justifyContent: 'flex-start',
-                                textTransform: 'none',
-                                color: theme.palette.error.light,
-                                backgroundColor: theme.palette.error.main,
-                                borderRadius: '12px',
-                                p: 2
-                            }}
-                        >
-                            Logout
-                        </Button>
+                        onClick={handleLogout}
+                        startIcon={<LogoutIcon />}
+                        sx={{
+                            justifyContent: 'flex-start',
+                            textTransform: 'none',
+                            color: theme.palette.error.light,
+                            backgroundColor: theme.palette.error.main,
+                            borderRadius: '12px',
+                            p: 2
+                        }}
+                    >
+                        Logout
+                    </Button>
+)}
                     </Stack>
                 </Box>
             </Drawer>

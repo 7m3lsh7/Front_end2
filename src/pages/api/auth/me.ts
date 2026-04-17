@@ -16,14 +16,19 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const { cookies } = req;
+    const token = cookies.access_token;
 
-    if (cookies.access_token === "mock-jwt-token") {
-        // Return mock user
-        return res.status(200).json({
-            userId: 1,
-            role: "Student", 
-        });
+    if (token) {
+      return res.status(200).json({
+        userId: 1,
+        role:
+          token === "admin"
+            ? "Admin"
+            : token === "teacher"
+            ? "Teacher"
+            : "Student",
+      });
     }
-
+   
     return res.status(401).json({ message: "Unauthenticated" });
 }

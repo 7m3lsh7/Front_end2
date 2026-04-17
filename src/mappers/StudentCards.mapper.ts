@@ -1,7 +1,7 @@
 import { CardData } from "@/types/SharedCard";
-import TeacherIcon from "@/icons/book.svg";
-import StudentIcon from "@/icons/file.svg";
-import { StudentCardApi } from '@/types/Student/Student-api';
+import BookIcon from "@/icons/book.svg";
+import fileIcon from "@/icons/file.svg";
+import { StudentCardApi } from '@/types/Student-api/Student-api';
 
 export function mapStudentCardsToSharedCards(
   data: StudentCardApi[]
@@ -12,8 +12,8 @@ export function mapStudentCardsToSharedCards(
     description: item.description,
     href: item.route,
     icon:
-      item.title === "Teacher"
-        ? TeacherIcon
-        : StudentIcon,
+      item.title === "Quarter Grades"
+        ? BookIcon
+        : fileIcon,
   }));
 }

@@ -20,12 +20,27 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       sx={{
         position: "relative",
         overflow: "hidden",
+<<<<<<< HEAD
         borderTopLeftRadius: { xs: "20px", md: "50px" },
         borderTopRightRadius: { xs: "20px", md: "50px" },
+=======
+        textAlign: "left",
+
+
+
+        borderTopLeftRadius: { xs: "20px", md: "50px" },
+        borderTopRightRadius: { xs: "20px", md: "50px" },
+
+
+>>>>>>> a4e0ea5a8280e355608569163c10e2a29430e494
         padding: { xs: "20px", md: "50px" },
         maxWidth: "1760px",
         width: "100%",
         mx: "auto",
+<<<<<<< HEAD
+=======
+
+>>>>>>> a4e0ea5a8280e355608569163c10e2a29430e494
         "&::before": {
           content: '""',
           position: "absolute",
@@ -88,7 +103,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       )}
 
       {children && (
+<<<<<<< HEAD
         <Box  sx={{ mt: 4 }} >
+=======
+        <Box sx={{ mt: { xs: "10px", md: "70px" }, mb: { xs: "10px", md: "100px" } }}>
+>>>>>>> a4e0ea5a8280e355608569163c10e2a29430e494
           {children}
         </Box>
       )}
