@@ -11,36 +11,35 @@
  * across the application.
  */
 
-const ACCESS_TOKEN_KEY = "access_token";
-const REFRESH_TOKEN_KEY = "refresh_token";
+const ACCESS_TOKEN_KEY = "auth_access_token";
+const REFRESH_TOKEN_KEY = "auth_refresh_token";
 
 /**
- * Store access token in sessionStorage
- * SessionStorage is cleared when tab is closed, providing better security
+ * Store access token in localStorage
  */
 export const tokenStorage = {
     /**
-     * Get access token from sessionStorage
+     * Get access token from localStorage
      */
     getAccessToken(): string | null {
         if (typeof window === "undefined") return null;
-        return sessionStorage.getItem(ACCESS_TOKEN_KEY);
+        return localStorage.getItem(ACCESS_TOKEN_KEY);
     },
 
     /**
-     * Store access token in sessionStorage
+     * Store access token in localStorage
      */
     setAccessToken(token: string): void {
         if (typeof window === "undefined") return;
-        sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+        localStorage.setItem(ACCESS_TOKEN_KEY, token);
     },
 
     /**
-     * Remove access token from sessionStorage
+     * Remove access token from localStorage
      */
     removeAccessToken(): void {
         if (typeof window === "undefined") return;
-        sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
     },
 
     /**

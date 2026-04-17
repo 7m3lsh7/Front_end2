@@ -1,48 +1,50 @@
-import { tokenStorage } from "@/utils/token-storage";
 import { authService } from "@/services/auth.service";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/backend-api";
 
-// Extended RequestInit with _retry flag
 interface ExtendedRequestInit extends RequestInit {
   _retry?: boolean;
 }
 
-// Flag to prevent multiple simultaneous refresh requests
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (value?: any) => void;
-  reject: (reason?: any) => void;
+  resolve: (value: string | null) => void;
+  reject: (reason?: unknown) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const ACCESS_TOKEN_KEY = "auth_access_token";
+const REFRESH_TOKEN_KEY = "auth_refresh_token";
+
+const getAccessToken = (): string | null =>
+  typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+
+const processQueue = (error: unknown, token: string | null = null): void => {
   failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
+    if (error) prom.reject(error);
+    else prom.resolve(token);
   });
   failedQueue = [];
 };
 
-/**
- * Secure fetch with JWT token support and automatic token refresh
- * 
- * Features:
- * - Automatically adds Authorization header with access token
- * - Handles token refresh on 401 errors
- * - Queues requests during token refresh
- */
+const getErrorMessage = async (res: Response): Promise<string> => {
+  let errorMessage = "API request failed";
+  try {
+    const errorData = await res.json().catch(() => null);
+    if (typeof errorData?.message === "string" && errorData.message.trim()) {
+      errorMessage = errorData.message;
+    }
+  } catch {
+    // Keep fallback message.
+  }
+  return errorMessage;
+};
+
 export const secureFetch = async (
   url: string,
   options?: ExtendedRequestInit
-) => {
+): Promise<unknown> => {
   try {
-    const accessToken = tokenStorage.getAccessToken();
-    
-    // Prepare headers with access token
+    const accessToken = getAccessToken();
     const headers: HeadersInit = {
       "Content-Type": "application/json",
       ...(options?.headers || {}),
@@ -54,92 +56,54 @@ export const secureFetch = async (
 
     const res = await fetch(url, {
       ...options,
-      credentials: "include",
       headers,
     });
 
-    // Handle 401 Unauthorized - token expired
     if (res.status === 401 && !options?._retry) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
-        return new Promise((resolve, reject) => {
+        return new Promise<string | null>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        })
-          .then((newToken: string | null) => {
-            const retryHeaders: HeadersInit = {
-              "Content-Type": "application/json",
-              ...(options?.headers || {}),
-            };
-            if (newToken) {
-              retryHeaders["Authorization"] = `Bearer ${newToken}`;
-            }
-            return fetch(url, {
-              ...options,
-              credentials: "include",
-              headers: retryHeaders,
-            });
-          })
-          .then(async (retryRes) => {
-            if (!retryRes.ok) {
-              let errorMessage = "API request failed";
-              try {
-                const errorData = await retryRes.json().catch(() => null);
-                errorMessage = errorData?.message || errorMessage;
-              } catch {
-                // If parsing fails, use default message
-              }
-              throw new Error(errorMessage);
-            }
-            return retryRes.json();
-          })
-          .catch((err) => {
-            return Promise.reject(err);
+        }).then(async (newToken) => {
+          const retryHeaders: HeadersInit = {
+            "Content-Type": "application/json",
+            ...(options?.headers || {}),
+          };
+          if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
+
+          const retryRes = await fetch(url, {
+            ...options,
+            _retry: true,
+            headers: retryHeaders,
           });
+          if (!retryRes.ok) throw new Error(await getErrorMessage(retryRes));
+          return retryRes.json();
+        });
       }
 
       isRefreshing = true;
-
       try {
         await authService.refreshAccessToken();
-        const newToken = tokenStorage.getAccessToken();
-        
+        const newToken = getAccessToken();
         processQueue(null, newToken);
-        
-        // Retry the original request with new token
+
         const retryHeaders: HeadersInit = {
           "Content-Type": "application/json",
           ...(options?.headers || {}),
         };
-        if (newToken) {
-          retryHeaders["Authorization"] = `Bearer ${newToken}`;
-        }
+        if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
 
         const retryRes = await fetch(url, {
           ...options,
           _retry: true,
-          credentials: "include",
           headers: retryHeaders,
         });
-
-        if (!retryRes.ok) {
-          let errorMessage = "API request failed";
-          try {
-            const errorData = await retryRes.json().catch(() => null);
-            errorMessage = errorData?.message || errorMessage;
-          } catch {
-            // If parsing fails, use default message
-          }
-          throw new Error(errorMessage);
-        }
-
+        if (!retryRes.ok) throw new Error(await getErrorMessage(retryRes));
         return retryRes.json();
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Clear tokens and optionally redirect to login
-        tokenStorage.clearAll();
         if (typeof window !== "undefined") {
-          // Optionally redirect to login page
-          // window.location.href = "/login";
+          localStorage.removeItem(ACCESS_TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
         }
         throw refreshError;
       } finally {
@@ -147,24 +111,10 @@ export const secureFetch = async (
       }
     }
 
-    if (!res.ok) {
-      // Try to get error message from response
-      let errorMessage = "API request failed";
-      try {
-        const errorData = await res.json().catch(() => null);
-        errorMessage = errorData?.message || errorMessage;
-      } catch {
-        // If parsing fails, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
+    if (!res.ok) throw new Error(await getErrorMessage(res));
     return res.json();
-  } catch (error) {
-    // Re-throw if it's already an Error, otherwise wrap it
-    if (error instanceof Error) {
-      throw error;
-    }
+  } catch (error: unknown) {
+    if (error instanceof Error) throw error;
     throw new Error("Network error occurred");
   }
 };

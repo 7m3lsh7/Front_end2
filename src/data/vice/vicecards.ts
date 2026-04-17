@@ -7,17 +7,16 @@ export const viceCardsApi: ViceCardApi[] = [
     description: "Add teachers and assign them to subjects.",
     route: "/vice/teachers",
   },
-    {
-    id: 1,
-    title: "Teacher",
-    description: "Add teachers and assign them to subjects.",
-    route: "/vice/teachers",
+  {
+    id: 2,
+    title: "Student",
+    description: "Manage classes and student enrollment.",
+    route: "/vice/students",
   },
-    {
-    id: 1,
-    title: "Teacher",
-    description: "Add teachers and assign them to subjects.",
-    route: "/vice/teachers",
+  {
+    id: 3,
+    title: "Grades",
+    description: "Manage quarter and final grades setup.",
+    route: "/vice/grades",
   },
-  
 ];

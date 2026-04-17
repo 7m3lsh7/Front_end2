@@ -426,8 +426,8 @@ Authorization: Bearer <accessToken>
 - If refresh token is invalid/expired, user is automatically logged out
 
 ### Token Storage (Frontend)
-- **Access Token**: Stored in `sessionStorage` (cleared when browser tab closes)
-- **Refresh Token**: Stored in `localStorage` (persists until logout)
+- **Access Token**: Stored in `localStorage`
+- **Refresh Token**: Stored in `localStorage`
 - Tokens are never exposed in URLs or logs
 - Frontend automatically adds `Authorization` header to all requests
 
@@ -574,6 +574,117 @@ const data = await api.get("/teachers"); // Token refresh handled automatically
 
 
 
+## 🧑‍💼 Vice Module Endpoints
+
+### Scope
+The following endpoints are specific to vice workflows.  
+Core entities (`teachers`, `subjects`, `classes`, `teacher-assignments`) are already documented above and must be reused (no duplicate APIs).
+
+### 11. GET `/api/vice/dashboard/cards`
+**Purpose:** Get dynamic cards for `/vice` dashboard.
+
+**Response (200):**
+```json
+[
+  { "id": 1, "title": "Teacher", "description": "Add teachers and assign them to subjects.", "route": "/vice/teachers" },
+  { "id": 2, "title": "Student", "description": "Manage classes and student enrollment.", "route": "/vice/students" },
+  { "id": 3, "title": "Grades", "description": "Manage quarter and final grades setup.", "route": "/vice/grades" }
+]
+```
+
+### 12. GET `/api/vice/students`
+**Purpose:** List students with filters.
+
+**Query Parameters:**
+- `year` (required): `junior | wheeler | senior`
+- `department` (required): `OM | SD`
+- `classId` (optional): class ID
+
+**Response (200):**
+```json
+[
+  {
+    "id": "st1",
+    "studentCode": "2025025",
+    "name": "Ahmed Al-Mansouri",
+    "department": "OM",
+    "className": "J1",
+    "year": "junior"
+  }
+]
+```
+
+### 13. POST `/api/vice/students`
+**Purpose:** Create student.
+
+**Request Body:**
+```json
+{
+  "firstName": "Ahmed",
+  "middleName": "M",
+  "lastName": "Ali",
+  "studentCode": "2025123",
+  "email": "student@example.com",
+  "phone": "01000000000",
+  "department": "OM",
+  "year": "junior",
+  "classId": 1
+}
+```
+
+### 14. PUT `/api/vice/students/{studentId}`
+**Purpose:** Update student.
+
+### 15. DELETE `/api/vice/students/{studentId}`
+**Purpose:** Delete student.
+
+### 16. GET `/api/vice/grades/quarter/subjects?level={level}`
+**Purpose:** List subjects available for quarter grades by level.
+
+### 17. GET `/api/vice/grades/quarter/students`
+**Purpose:** Load quarter grade sheet with filters.
+
+**Query Parameters:**
+- `level`, `subjectId`, `department`, `classId`
+
+**Response (200):**
+```json
+{
+  "maxQuarterGrades": { "q1": 25, "q2": 25, "q3": 25, "q4": 25 },
+  "students": [
+    { "studentId": "st1", "studentName": "Ahmed", "q1": 20, "q2": 19, "q3": 18, "q4": 22 }
+  ]
+}
+```
+
+### 18. PUT `/api/vice/grades/quarter/students`
+**Purpose:** Save quarter grades in bulk.
+
+### 19. GET `/api/vice/grades/final/students`
+**Purpose:** Load final grades table by `level + semester + filters`.
+
+### 20. PUT `/api/vice/grades/final/students`
+**Purpose:** Save/update final grades in bulk.
+
+**Request Body:**
+```json
+{
+  "level": "junior",
+  "semester": 1,
+  "department": "OM",
+  "classId": 1,
+  "grades": [
+    { "studentId": "st1", "score": 78 }
+  ]
+}
+```
+
+### 21. POST `/api/vice/grades/final/submit`
+**Purpose:** Submit final grades for approval.
+
+### 22. GET `/api/vice/grades/final/history?studentId={id}&subjectId={id}`
+**Purpose:** View final grade edit/audit history.
+
 ## 📋 Summary
 
 | Endpoint | Method | Auth Required | Description |
@@ -588,6 +699,18 @@ const data = await api.get("/teachers"); // Token refresh handled automatically
 | `/api/subjects` | POST | ✅ | Create new subject |
 | `/api/classes` | GET | ✅ | List of classes (by year) |
 | `/api/teacher-assignments` | POST | ✅ | Assign teacher to subject and classes |
+| `/api/vice/dashboard/cards` | GET | ✅ | Vice dashboard cards |
+| `/api/vice/students` | GET | ✅ | List students with filters |
+| `/api/vice/students` | POST | ✅ | Create student |
+| `/api/vice/students/{studentId}` | PUT | ✅ | Update student |
+| `/api/vice/students/{studentId}` | DELETE | ✅ | Delete student |
+| `/api/vice/grades/quarter/subjects` | GET | ✅ | Quarter subjects by level |
+| `/api/vice/grades/quarter/students` | GET | ✅ | Quarter grades sheet |
+| `/api/vice/grades/quarter/students` | PUT | ✅ | Save quarter grades |
+| `/api/vice/grades/final/students` | GET | ✅ | Final grades sheet |
+| `/api/vice/grades/final/students` | PUT | ✅ | Save final grades |
+| `/api/vice/grades/final/submit` | POST | ✅ | Submit final grades |
+| `/api/vice/grades/final/history` | GET | ✅ | Final grades history |
 
 **Authentication Method:** All protected endpoints use `Authorization: Bearer <accessToken>` header.
 
@@ -616,4 +739,4 @@ const data = await api.get("/teachers"); // Token refresh handled automatically
 
 ---
 
-**Last Updated:** 2025-01-25
+**Last Updated:** 2026-04-17

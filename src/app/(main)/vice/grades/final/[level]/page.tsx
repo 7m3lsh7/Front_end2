@@ -49,7 +49,7 @@ export default function FinalGradesDashboard() {
                                 <ArrowBackIcon />
                             </IconButton>
                             <Typography variant="h5" fontWeight="bold" sx={{ color: '#fff' }}>
-                                Student Assignment Dashboard
+                                Student Assignment Dashboard - {level.charAt(0).toUpperCase() + level.slice(1)}
                             </Typography>
                         </Box>
 

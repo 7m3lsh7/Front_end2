@@ -6,7 +6,6 @@ import {
   Box,
 } from "@mui/material";
 
-import SharedNavbar from "@/components/layout/SharedNavbar";
 import DashboardHeader from "@/components/shared/DashboardHeader-bg";
 import SharedCard from "@/components/shared/SharedCard";
 import { viceCardsApi } from "@/data/vice/vicecards";

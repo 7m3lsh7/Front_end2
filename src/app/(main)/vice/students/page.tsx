@@ -13,8 +13,7 @@ export default function ViceStudentsPage() {
 
     return (
            <>
-        <SharedNavbar/>
-        {/* Main Content Card */}
+
 
         <Box sx={{ position: 'relative', minHeight: '100vh', paddingBottom: 4 }}>
             {/* Page Header Area */}

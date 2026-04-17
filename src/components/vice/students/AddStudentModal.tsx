@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Dialog, DialogContent, DialogTitle, IconButton, Box, Typography, TextField, Button, Grid, Step, StepLabel, Stepper } from '@mui/material';
+import { Dialog, DialogContent, IconButton, Box, Typography, TextField, Button, Grid, Step, StepLabel, Stepper } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
 interface AddStudentModalProps {
@@ -10,7 +10,7 @@ interface AddStudentModalProps {
 }
 
 export default function AddStudentModal({ open, onClose }: AddStudentModalProps) {
-    const [activeStep, setActiveStep] = React.useState(0);
+    const [activeStep] = React.useState(0);
     const steps = [1, 2, 3];
 
     return (
@@ -45,7 +45,7 @@ export default function AddStudentModal({ open, onClose }: AddStudentModalProps)
                             borderRadius: 1
                         }
                     }}>
-                        {steps.map((label, index) => (
+                        {steps.map((label) => (
                             <Step key={label}>
                                 <StepLabel
                                     StepIconComponent={() => (

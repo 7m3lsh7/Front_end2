@@ -15,8 +15,7 @@
 
 import { tokenStorage } from "@/utils/token-storage";
 
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "/backend-api").replace(/\/+$/, "");
 
 
 export interface LoginPayload {
@@ -36,6 +35,7 @@ export interface LoginResponse {
 export interface MeResponse {
     userId: number;
     role: "Admin" | "Teacher" | "Student";
+    username: string;
 }
 
 /**
@@ -46,16 +46,62 @@ export interface RefreshTokenResponse {
     refreshToken?: string; // Optional - some APIs only return new access token
 }
 
+interface JwtPayload {
+    [key: string]: unknown;
+}
+
+function decodeJwtPayload(token: string): JwtPayload | null {
+    try {
+        const payload = token.split(".")[1];
+        if (!payload) return null;
+        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+        const decoded = atob(padded);
+        return JSON.parse(decoded);
+    } catch {
+        return null;
+    }
+}
+
+function getClaimString(payload: JwtPayload | null, key: string): string | null {
+    const value = payload?.[key];
+    return typeof value === "string" ? value : null;
+}
+
+function parseUserFromToken(accessToken: string): MeResponse | null {
+    const payload = decodeJwtPayload(accessToken);
+    if (!payload) return null;
+
+    const userIdRaw = getClaimString(
+        payload,
+        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+    );
+    const username =
+        getClaimString(payload, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name") ?? "User";
+    const roleRaw =
+        getClaimString(payload, "http://schemas.microsoft.com/ws/2008/06/identity/claims/role") ?? "Student";
+
+    const role = (roleRaw === "Admin" || roleRaw === "Teacher" || roleRaw === "Student"
+        ? roleRaw
+        : "Student") as MeResponse["role"];
+    const userId = Number(userIdRaw ?? "0");
+
+    return {
+        userId: Number.isFinite(userId) ? userId : 0,
+        role,
+        username,
+    };
+}
+
 /**
  * Login and store tokens
  */
 async function login(payload: LoginPayload): Promise<LoginResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        credentials: "include", 
         body: JSON.stringify(payload),
     });
 
@@ -87,13 +133,12 @@ async function getMe(): Promise<MeResponse> {
         throw new Error("Unauthenticated");
     }
 
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/me`, {
         method: "GET",
         headers: {
             "Authorization": `Bearer ${accessToken}`,
             "Content-Type": "application/json",
         },
-        credentials: "include",
     });
 
     if (!response.ok) {
@@ -104,13 +149,12 @@ async function getMe(): Promise<MeResponse> {
                 // Retry the request with new token
                 const newToken = tokenStorage.getAccessToken();
                 if (newToken) {
-                    const retryResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+                    const retryResponse = await fetch(`${API_BASE_URL}/Auth/me`, {
                         method: "GET",
                         headers: {
                             "Authorization": `Bearer ${newToken}`,
                             "Content-Type": "application/json",
                         },
-                        credentials: "include",
                     });
                     if (retryResponse.ok) {
                         return retryResponse.json();
@@ -120,6 +164,10 @@ async function getMe(): Promise<MeResponse> {
                 // Refresh failed, clear tokens
                 tokenStorage.clearAll();
             }
+        }
+        const fallbackUser = parseUserFromToken(accessToken);
+        if (fallbackUser) {
+            return fallbackUser;
         }
         throw new Error("Unauthenticated");
     }
@@ -137,12 +185,11 @@ async function refreshAccessToken(): Promise<void> {
         throw new Error("No refresh token available");
     }
 
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const response = await fetch(`${API_BASE_URL}/Auth/refresh`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify({ refreshToken }),
     });
 
@@ -172,16 +219,13 @@ async function logout(): Promise<void> {
     try {
         // Call logout endpoint if refresh token exists
         if (refreshToken) {
-            const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+            await fetch(`${API_BASE_URL}/Auth/logout`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                credentials: "include",
                 body: JSON.stringify({ refreshToken }),
             });
-            // Don't throw error if logout fails on server
-            // We still want to clear local tokens
         }
     } catch {
         // Ignore errors, continue to clear local tokens
@@ -196,4 +240,5 @@ export const authService = {
     getMe,
     logout,
     refreshAccessToken,
+    parseUserFromToken,
 };
