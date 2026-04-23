@@ -13,10 +13,31 @@ import LeadCard from "@/components/about/LeadCard";
 import TeamCarousel from "@/components/about/TeamCarousel";
 import SectionTitleCard from "@/components/about/SectionTitleCard";
 import { teamLead, aboutTeams, aboutStats } from "@/data/about";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function AboutPage() {
   const theme = useTheme();
   const primary = theme.palette.primary.main;
+  const { t } = useLanguage();
+
+  const localizedLead = {
+    ...teamLead,
+    role: t("about.teamLeadRole", teamLead.role),
+    bio: t("about.teamLeadBio", teamLead.bio),
+  };
+
+  const localizedTeams = aboutTeams.map((team) => ({
+    ...team,
+    title: t(`about.teams.${team.key}`, team.title),
+    developers: team.developers.map((dev, index) => ({
+      ...dev,
+      role: t(
+        `about.roles.${team.key}`,
+        dev.role
+      ),
+      name: t(`about.members.${team.key}.${index}`, dev.name),
+    })),
+  }));
 
   return (
     <Box
@@ -62,7 +83,7 @@ export default function AboutPage() {
               transition: "opacity 0.3s ease",
             }}
           >
-            About the team
+            {t("about.title")}
           </Typography>
           <Typography
             variant="body1"
@@ -74,9 +95,7 @@ export default function AboutPage() {
               lineHeight: 1.7,
             }}
           >
-            The dedicated team behind the School Grading System — committed to
-            excellence, security, and a seamless experience for students,
-            teachers, and admins.
+            {t("about.subtitle")}
           </Typography>
         </Container>
       </Box>
@@ -128,7 +147,7 @@ export default function AboutPage() {
                 variant="body2"
                 sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}
               >
-                {stat.label}
+                {t("about.coreSquad", stat.label)}
               </Typography>
             </Box>
           ))}
@@ -138,13 +157,13 @@ export default function AboutPage() {
       {/* Team Lead */}
       <Container maxWidth="md" sx={{ mb: { xs: 6, md: 8 }, px: { xs: 2, sm: 2 } }}>
         <Box sx={{ mb: 3 }}>
-          <SectionTitleCard title="Team Lead" />
+          <SectionTitleCard title={t("about.teamLead")} />
         </Box>
-        <LeadCard lead={teamLead} />
+        <LeadCard lead={localizedLead} />
       </Container>
 
       {/* Teams: Backend, Frontend, Flutter */}
-      {aboutTeams.map((team) => (
+      {localizedTeams.map((team) => (
         <Box
           key={team.key}
           sx={{

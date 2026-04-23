@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Dialog, DialogContent, IconButton, Box, Typography, TextField, Button, Step, StepLabel, Stepper, Alert } from '@mui/material';
+import { Dialog, DialogContent, Box, Typography, TextField, Button, Step, StepLabel, Stepper, Alert } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import type { ViceDepartment, ViceLevel } from '@/types/vice/students';
+import { useLanguage } from '@/context/LanguageContext';
+import AccessibleIconButton from '@/components/a11y/AccessibleIconButton';
 
 interface AddStudentModalProps {
     open: boolean;
@@ -22,6 +24,7 @@ interface AddStudentModalProps {
 }
 
 export default function AddStudentModal({ open, onClose, classId, year, department, onSubmit }: AddStudentModalProps) {
+    const { t } = useLanguage();
     const [activeStep] = useState(0);
     const steps = [1, 2, 3];
 
@@ -38,14 +41,14 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
     const [success, setSuccess] = useState(false);
 
     const disabledReason = useMemo(() => {
-        if (!classId) return 'Please select a class first';
-        if (!form.firstName.trim()) return 'First name is required';
-        if (!form.lastName.trim()) return 'Last name is required';
-        if (!form.studentCode.trim()) return 'Student code is required';
-        if (!form.email.trim()) return 'Email is required';
-        if (!form.phone.trim()) return 'Phone is required';
+        if (!classId) return t('modal.pleaseSelectClassFirst');
+        if (!form.firstName.trim()) return t('auth.usernameRequired', 'First name is required');
+        if (!form.lastName.trim()) return t('teachers.lastNameRequired', 'Last name is required');
+        if (!form.studentCode.trim()) return t('modal.studentCode') + " " + t('auth.passwordRequired', 'is required');
+        if (!form.email.trim()) return t('modal.email') + " " + t('auth.passwordRequired', 'is required');
+        if (!form.phone.trim()) return t('modal.phone') + " " + t('auth.passwordRequired', 'is required');
         return null;
-    }, [classId, form]);
+    }, [classId, form, t]);
 
     const handleSave = async () => {
         setError(null);
@@ -78,7 +81,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                 setSuccess(false);
             }, 800);
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Failed to add student');
+            setError(e instanceof Error ? e.message : t('students.addStudentFailed', 'Failed to add student'));
         } finally {
             setSubmitting(false);
         }
@@ -100,11 +103,11 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
         >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" fontWeight="bold">
-                    Add New Student
+                    {t('modal.addNewStudent')}
                 </Typography>
-                <IconButton onClick={onClose} size="small">
+                <AccessibleIconButton label={t('common.closeMenu')} onClick={onClose} size="small">
                     <CloseIcon />
-                </IconButton>
+                </AccessibleIconButton>
             </Box>
 
             <DialogContent sx={{ overflowY: 'visible' }}>
@@ -143,11 +146,11 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                     </Stepper>
                 </Box>
 
-                {success && <Alert severity="success" sx={{ mb: 2 }}>Student added successfully</Alert>}
+                {success && <Alert severity="success" sx={{ mb: 2 }}>{t('modal.studentAddedSuccess')}</Alert>}
                 {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
                 <Alert severity="info" sx={{ mb: 2 }}>
-                    Year: <b>{year}</b> — Department: <b>{department}</b> — Class: <b>{classId ?? '—'}</b>
+                    {t('modal.year')}: <b>{year}</b> — {t('students.department')}: <b>{department}</b> — {t('modal.class')}: <b>{classId ?? '—'}</b>
                 </Alert>
 
                 <Box
@@ -161,17 +164,19 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                     <Box>
                         <TextField
                             fullWidth
-                            label="First name"
+                            label={t('modal.firstName')}
                             value={form.firstName}
                             onChange={(e) => setForm({ ...form, firstName: e.target.value })}
                             variant="outlined"
+                            required
+                            aria-required="true"
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
                         />
                     </Box>
                     <Box>
                         <TextField
                             fullWidth
-                            label="Middle name (optional)"
+                            label={t('modal.middleNameOptional')}
                             value={form.middleName}
                             onChange={(e) => setForm({ ...form, middleName: e.target.value })}
                             variant="outlined"
@@ -181,41 +186,49 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                     <Box>
                         <TextField
                             fullWidth
-                            label="Last name"
+                            label={t('modal.lastName')}
                             value={form.lastName}
                             onChange={(e) => setForm({ ...form, lastName: e.target.value })}
                             variant="outlined"
+                            required
+                            aria-required="true"
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
                         />
                     </Box>
                     <Box>
                         <TextField
                             fullWidth
-                            label="Student code"
+                            label={t('modal.studentCode')}
                             value={form.studentCode}
                             onChange={(e) => setForm({ ...form, studentCode: e.target.value })}
                             variant="outlined"
+                            required
+                            aria-required="true"
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
                         />
                     </Box>
                     <Box>
                         <TextField
                             fullWidth
-                            label="Email"
+                            label={t('modal.email')}
                             type="email"
                             value={form.email}
                             onChange={(e) => setForm({ ...form, email: e.target.value })}
                             variant="outlined"
+                            required
+                            aria-required="true"
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
                         />
                     </Box>
                     <Box>
                         <TextField
                             fullWidth
-                            label="Phone"
+                            label={t('modal.phone')}
                             value={form.phone}
                             onChange={(e) => setForm({ ...form, phone: e.target.value })}
                             variant="outlined"
+                            required
+                            aria-required="true"
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
                         />
                     </Box>
@@ -239,7 +252,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                             }
                         }}
                     >
-                        {submitting ? 'Saving...' : 'Save Student'}
+                        {submitting ? t('modal.saving') : t('modal.saveStudent')}
                     </Button>
                 </Box>
             </DialogContent>

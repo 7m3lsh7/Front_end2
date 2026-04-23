@@ -1,40 +1,42 @@
-"use client";
-
 import React from "react";
-import { ThemeProvider } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import theme from "@/styles/theme";
-import { AuthProvider } from '../context/AuthContext';
-import { StudentYearProvider } from '../context/StudentYearContext';
-import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
-const queryClient = new QueryClient();
+import { cookies } from "next/headers";
+import AppProviders from "@/providers/AppProviders";
+import AccessibilityScript from "@/providers/AccessibilityScript";
+import SkipToContent from "@/components/a11y/SkipToContent";
+import type { AppLanguage } from "@/context/LanguageContext";
+import type { ThemeMode } from "@/context/ThemeModeContext";
 
-export default function RootLayout({
+const LANGUAGE_COOKIE = "app_language";
+const THEME_COOKIE = "app_theme_mode";
+
+function resolveLanguage(value: string | undefined): AppLanguage {
+  return value === "ar" ? "ar" : "en";
+}
+
+function resolveTheme(value: string | undefined): ThemeMode {
+  return value === "dark" ? "dark" : "light";
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <LanguageProvider>
-      <RootHtml>{children}</RootHtml>
-    </LanguageProvider>
-  );
-}
+  const cookieStore = await cookies();
+  const initialLanguage = resolveLanguage(cookieStore.get(LANGUAGE_COOKIE)?.value);
+  const initialThemeMode = resolveTheme(cookieStore.get(THEME_COOKIE)?.value);
+  const dir = initialLanguage === "ar" ? "rtl" : "ltr";
 
-function RootHtml({ children }: { children: React.ReactNode }) {
-  const { language, dir } = useLanguage();
   return (
-    <html lang={language} dir={dir}>
+    <html lang={initialLanguage} dir={dir} suppressHydrationWarning>
       <body dir={dir}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <StudentYearProvider>{children}</StudentYearProvider>
-            </AuthProvider>
-          </QueryClientProvider>
-        </ThemeProvider>
+        <AccessibilityScript />
+        <AppProviders initialLanguage={initialLanguage} initialThemeMode={initialThemeMode}>
+          <SkipToContent />
+          <main id="main-content" tabIndex={-1}>
+            {children}
+          </main>
+        </AppProviders>
       </body>
     </html>
   );

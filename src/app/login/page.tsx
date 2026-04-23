@@ -27,6 +27,7 @@ import { useTheme } from "@mui/material/styles";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { getRedirectPathByRole } from "@/utils/auth-redirect";
 
 const images = [
@@ -51,6 +52,7 @@ const LoginPage = () => {
     const theme = useTheme();
     const router = useRouter();
     const { login, isAuthenticated, user, loading } = useAuth();
+    const { t } = useLanguage();
 
     const [currentImage, setCurrentImage] = useState(0);
     const [username, setUsername] = useState("");
@@ -84,23 +86,23 @@ const LoginPage = () => {
 
         // Validate inputs
         if (!sanitizedUsername) {
-            setError("Username is required");
+            setError(t("auth.usernameRequired"));
             return;
         }
 
         if (!sanitizedPassword) {
-            setError("Password is required");
+            setError(t("auth.passwordRequired"));
             return;
         }
 
         // Basic length validation to prevent extremely long inputs
         if (sanitizedUsername.length > 100) {
-            setError("Username is too long");
+            setError(t("auth.usernameTooLong"));
             return;
         }
 
         if (sanitizedPassword.length > 200) {
-            setError("Password is too long");
+            setError(t("auth.passwordTooLong"));
             return;
         }
 
@@ -118,7 +120,7 @@ const LoginPage = () => {
             router.replace(redirectPath);
         } catch {
             // Generic error message to prevent user enumeration
-            setError("Invalid username or password");
+            setError(t("auth.invalidCredentials"));
         }
     };
 
@@ -166,21 +168,19 @@ const LoginPage = () => {
                             boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
                         }}
                     >
-                        <Typography variant="h2" mb={1}>
-                            Admin Portal
-                        </Typography>
+                        <Typography variant="h2" mb={1}>{t("auth.adminPortal")}</Typography>
 
                         <Typography
                             variant="body2"
                             color={theme.palette.text.secondary}
                             mb={3}
                         >
-                            Sign in to access student records and grade management.
+                            {t("auth.signInSubtitle")}
                         </Typography>
 
                         <TextField
                             fullWidth
-                            label="Username"
+                            label={t("auth.username")}
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             sx={{ mb: 2 }}
@@ -192,7 +192,7 @@ const LoginPage = () => {
 
                         <TextField
                             fullWidth
-                            label="Password"
+                            label={t("auth.password")}
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -225,7 +225,7 @@ const LoginPage = () => {
                             }}
                         >
                             <Typography variant="h3">
-                                {loading ? "Signing In..." : "Sign In"}
+                                {loading ? t("auth.signingIn") : t("auth.signIn")}
                             </Typography>
                         </Button>
 
@@ -235,8 +235,7 @@ const LoginPage = () => {
                             mt={3}
                             color={theme.palette.text.secondary}
                         >
-                            Don’t have an account?{" "}
-                            <strong>Contact your administrator</strong>
+                            {t("auth.noAccount")} <strong>{t("auth.contactAdmin")}</strong>
                         </Typography>
                     </Card>
                 </Box>

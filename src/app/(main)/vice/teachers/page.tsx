@@ -11,7 +11,6 @@ import {
   Select,
   FormControl,
   InputLabel,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -29,6 +28,7 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -39,8 +39,14 @@ import { TeachersAPI } from "@/data/teachers.api";
 import { SubjectsAPI } from "@/data/subjects.api";
 import { ClassesAPI } from "@/data/classes.api";
 import { TeacherAssignmentsAPI } from "@/data/teacher-assignments.api";
+import { useLanguage } from "@/context/LanguageContext";
+import LoadingRegion from "@/components/a11y/LoadingRegion";
+import AccessibleIconButton from "@/components/a11y/AccessibleIconButton";
+import { appToast } from "@/hooks/useAppToast";
 
 export default function ViceTeachersPage() {
+  const { t } = useLanguage();
+  const theme = useTheme();
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassIds, setSelectedClassIds] = useState<number[]>([]);
 
@@ -111,7 +117,7 @@ export default function ViceTeachersPage() {
         setFetchError(
           error instanceof Error
             ? error.message
-            : "Failed to load teachers. Please try again."
+            : t("teachers.failedLoadTeachers", "Failed to load teachers. Please try again.")
         );
         setIsLoadingTeachers(false);
       });
@@ -127,7 +133,7 @@ export default function ViceTeachersPage() {
       setFetchError(
         error instanceof Error
           ? error.message
-          : "Failed to load teachers. Please try again."
+          : t("teachers.failedLoadTeachers", "Failed to load teachers. Please try again.")
       );
     } finally {
       setIsLoadingTeachers(false);
@@ -150,7 +156,7 @@ export default function ViceTeachersPage() {
         setFetchError(
           error instanceof Error
             ? error.message
-            : "Failed to load subjects. Please try again."
+            : t("teachers.failedLoadSubjects", "Failed to load subjects. Please try again.")
         );
         setIsLoadingSubjects(false);
       });
@@ -172,7 +178,7 @@ export default function ViceTeachersPage() {
         setFetchError(
           error instanceof Error
             ? error.message
-            : "Failed to load classes. Please try again."
+            : t("teachers.failedLoadClasses", "Failed to load classes. Please try again.")
         );
         setIsLoadingClasses(false);
       });
@@ -190,7 +196,7 @@ export default function ViceTeachersPage() {
   const handleAssignTeacher = async () => {
     // Validation
     if ((!selectedTeacherId && !pendingTeacherDraft) || !selectedYear || !selectedSubjectId || selectedClassIds.length === 0) {
-      setAssignmentError("Please fill in all required fields");
+      setAssignmentError(t("teachers.fillRequiredFields", "Please fill in all required fields"));
       return;
     }
 
@@ -223,7 +229,7 @@ export default function ViceTeachersPage() {
       }
 
       if (!teacherIdToAssign) {
-        throw new Error("Teacher is not selected");
+        throw new Error(t("teachers.teacherNotSelected", "Teacher is not selected"));
       }
 
       const normalizedClassIds = selectedClassIds
@@ -231,7 +237,7 @@ export default function ViceTeachersPage() {
         .filter((id) => Number.isInteger(id) && id > 0);
 
       if (normalizedClassIds.length === 0) {
-        throw new Error("Please select at least one valid class");
+        throw new Error(t("teachers.selectValidClass", "Please select at least one valid class"));
       }
 
       await TeacherAssignmentsAPI.create({
@@ -242,6 +248,7 @@ export default function ViceTeachersPage() {
       });
 
       setAssignmentSuccess(true);
+      appToast.success(t("teachers.assignedSuccess", "Teacher assigned successfully!"));
       // Reset form
       setSelectedTeacherId("");
       setSelectedSubjectId("");
@@ -256,7 +263,12 @@ export default function ViceTeachersPage() {
       setAssignmentError(
         error instanceof Error
           ? error.message
-          : "Failed to assign teacher. Please try again."
+          : t("teachers.failedAssignTeacher", "Failed to assign teacher. Please try again.")
+      );
+      appToast.error(
+        error instanceof Error
+          ? error.message
+          : t("teachers.failedAssignTeacher", "Failed to assign teacher. Please try again.")
       );
     } finally {
       setIsAssigningTeacher(false);
@@ -270,30 +282,30 @@ export default function ViceTeachersPage() {
 
     // Form validation
     if (!teacherForm.firstName.trim()) {
-      setTeacherError("First name is required");
+      setTeacherError(t("teachers.firstNameRequired", "First name is required"));
       return;
     }
     if (!teacherForm.lastName.trim()) {
-      setTeacherError("Last name is required");
+      setTeacherError(t("teachers.lastNameRequired", "Last name is required"));
       return;
     }
     if (!teacherForm.email.trim()) {
-      setTeacherError("Email is required");
+      setTeacherError(t("teachers.emailRequired", "Email is required"));
       return;
     }
     if (!teacherForm.phone.trim()) {
-      setTeacherError("Phone is required");
+      setTeacherError(t("teachers.phoneRequired", "Phone is required"));
       return;
     }
     if (!teacherForm.department.trim()) {
-      setTeacherError("Department is required");
+      setTeacherError(t("teachers.departmentRequired", "Department is required"));
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(teacherForm.email.trim())) {
-      setTeacherError("Please enter a valid email address");
+      setTeacherError(t("teachers.validEmail", "Please enter a valid email address"));
       return;
     }
 
@@ -301,11 +313,11 @@ export default function ViceTeachersPage() {
     const phoneRegex = /^[\d\s\-\(\)]+$/;
     const cleanPhone = teacherForm.phone.replace(/\s/g, "");
     if (cleanPhone.length < 8 || cleanPhone.length > 15) {
-      setTeacherError("Phone number must be between 8 and 15 digits");
+      setTeacherError(t("teachers.phoneLength", "Phone number must be between 8 and 15 digits"));
       return;
     }
     if (!phoneRegex.test(teacherForm.phone)) {
-      setTeacherError("Please enter a valid phone number");
+      setTeacherError(t("teachers.validPhone", "Please enter a valid phone number"));
       return;
     }
 
@@ -334,6 +346,7 @@ export default function ViceTeachersPage() {
 
       // Success - reset form and continue to assignment steps
       setTeacherSuccess(true);
+      appToast.success(t("teachers.addedSuccess", "Teacher added successfully!"));
 
       // Reset form
       setTeacherForm({
@@ -356,8 +369,10 @@ export default function ViceTeachersPage() {
     
       if (error instanceof Error) {
         setTeacherError(error.message);
+        appToast.error(error.message);
       } else {
-        setTeacherError("Failed to create teacher. Please try again.");
+        setTeacherError(t("teachers.failedCreateTeacher", "Failed to create teacher. Please try again."));
+        appToast.error(t("teachers.failedCreateTeacher", "Failed to create teacher. Please try again."));
       }
     }
     finally {
@@ -368,11 +383,11 @@ export default function ViceTeachersPage() {
   const handleSaveSubject = async () => {
     try {
       if (!subjectName.trim()) {
-        setFetchError("Subject name is required");
+        setFetchError(t("teachers.subjectNameRequired", "Subject name is required"));
         return;
       }
       if (!selectedYear.trim()) {
-        setFetchError("Select academic year/stage first");
+        setFetchError(t("teachers.selectAcademicYear", "Select academic year/stage first"));
         return;
       }
       // Backend swagger does not accept "type"; encode category in subject name.
@@ -390,10 +405,14 @@ export default function ViceTeachersPage() {
       setSubjectName("");
       setSubjectType("academic");
       setSubjects(await SubjectsAPI.getByYear(selectedYear));
+      appToast.success(t("teachers.saveSubject", "Save Subject"));
     } catch (error) {
       console.error("Failed to create subject:", error);
       setFetchError(
-        error instanceof Error ? error.message : "Failed to create subject."
+        error instanceof Error ? error.message : t("teachers.failedCreateSubject", "Failed to create subject.")
+      );
+      appToast.error(
+        error instanceof Error ? error.message : t("teachers.failedCreateSubject", "Failed to create subject.")
       );
     }
   };
@@ -424,7 +443,7 @@ export default function ViceTeachersPage() {
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
-        py: 4,
+        py: { xs: 2, md: 4 },
       }}
     >
       <Container maxWidth="lg">
@@ -435,38 +454,52 @@ export default function ViceTeachersPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: 2,
+              flexWrap: "wrap",
             }}
           >
-            <Typography variant="h4" fontWeight="bold" sx={{ color: "#fff" }}>
-              Teacher Assignment Dashboard
+            <Typography
+              variant="h4"
+              fontWeight={700}
+              sx={{
+                color: theme.palette.common.white,
+                lineHeight: 1.2,
+                textShadow: `0 2px 10px ${alpha(theme.palette.common.black, 0.45)}`,
+                fontSize: { xs: "1.5rem", md: "2rem" },
+              }}
+            >
+              {t("teachers.dashboardTitle")}
             </Typography>
             <Button
               variant="contained"
               onClick={() => setOpenTeachersList(true)}
               sx={{
-                backgroundColor: "#ffc107",
-                color: "#000",
-                fontWeight: "bold",
-                "&:hover": { backgroundColor: "#ffca2c" },
+                backgroundColor: theme.palette.primary.main,
+                color: theme.palette.primary.contrastText,
+                fontWeight: 700,
+                textTransform: "none",
+                "&:hover": { backgroundColor: theme.palette.primary.dark },
               }}
             >
-              List Teacher
+              {t("teachers.listTeacher")}
             </Button>
           </Box>
 
           {/* Main Content */}
           <Box
             sx={{
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              backgroundColor: alpha(theme.palette.background.default, 0.8),
+              backdropFilter: "blur(4px)",
               borderRadius: "24px",
-              p: { xs: 3, md: 6 },
-              color: "#fff",
+              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+              p: { xs: 2, md: 4 },
+              color: theme.palette.text.primary,
             }}
           >
             <Stack spacing={4}>
               {/* Step 1 */}
               <Card
-                sx={{ p: 3, borderRadius: "16px", backgroundColor: "#fff" }}
+                sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px", backgroundColor: theme.palette.background.paper }}
               >
                 <Stack spacing={2}>
                   <Box sx={{ display: "flex", gap: 2 }}>
@@ -474,37 +507,36 @@ export default function ViceTeachersPage() {
                       sx={{
                         width: 32,
                         height: 32,
-                        backgroundColor: "#ffc107",
+                        backgroundColor: theme.palette.primary.main,
                         borderRadius: "8px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontWeight: "bold",
-                        color: "#000",
+                        fontWeight: 700,
+                        color: theme.palette.primary.contrastText,
                       }}
                     >
                       1
                     </Box>
-                    <Typography variant="h6" fontWeight="bold">
-                      Select Teacher
+                    <Typography variant="h6" fontWeight={700} color="text.primary">
+                      {t("teachers.selectTeacher")}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <FormControl fullWidth size="small" sx={{ maxWidth: 300 }}>
-                      <InputLabel>Select Teacher</InputLabel>
+                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                    <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 320 }, minWidth: 220 }}>
+                      <InputLabel>{t("teachers.selectTeacher")}</InputLabel>
                       <Select
-                        label="Select Teacher"
+                        label={t("teachers.selectTeacher")}
                         value={selectedTeacherId}
                         onChange={(e) => setSelectedTeacherId(e.target.value)}
                         disabled={isLoadingTeachers}
                       >
                         {isLoadingTeachers ? (
                           <MenuItem disabled>
-                            <CircularProgress size={20} sx={{ mr: 1 }} />
-                            Loading...
+                            <LoadingRegion />
                           </MenuItem>
                         ) : teachers.length === 0 ? (
-                          <MenuItem disabled>No teachers available</MenuItem>
+                          <MenuItem disabled>{t("teachers.noTeachersAvailable")}</MenuItem>
                         ) : (
                           teachers.map((t) => (
                             <MenuItem key={t.id} value={t.id}>
@@ -520,17 +552,19 @@ export default function ViceTeachersPage() {
                       variant="contained"
                       startIcon={<AddIcon />}
                       sx={{
-                        backgroundColor: "#ffc107",
-                        color: "#000",
-                        "&:hover": { backgroundColor: "#ffca2c" },
+                        backgroundColor: theme.palette.primary.main,
+                        color: theme.palette.primary.contrastText,
+                        textTransform: "none",
+                        fontWeight: 700,
+                        "&:hover": { backgroundColor: theme.palette.primary.dark },
                       }}
                     >
-                      Add New Teacher
+                      {t("teachers.addNewTeacher")}
                     </Button>
                   </Box>
                   {pendingTeacherDraft && (
                     <Alert severity="info">
-                      New teacher draft saved. Complete year/subject/classes then click <b>Assign Teacher</b> to create and assign.
+                      {t("teachers.draftSaved", "New teacher draft saved. Complete year/subject/classes then click")} <b>{t("teachers.assignTeacherCta", "Assign Teacher")}</b> {t("teachers.toCreateAssign", "to create and assign.")}
                     </Alert>
                   )}
                 </Stack>
@@ -538,7 +572,7 @@ export default function ViceTeachersPage() {
 
               {/* Step 2 */}
               <Card
-                sx={{ p: 3, borderRadius: "16px", backgroundColor: "#fff" }}
+                sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px", backgroundColor: theme.palette.background.paper }}
               >
                 <Stack spacing={2}>
                   <Box sx={{ display: "flex", gap: 2 }}>
@@ -546,27 +580,27 @@ export default function ViceTeachersPage() {
                       sx={{
                         width: 32,
                         height: 32,
-                        backgroundColor: "#ffc107",
+                        backgroundColor: theme.palette.primary.main,
                         borderRadius: "8px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontWeight: "bold",
-                        color: "#000",
+                        fontWeight: 700,
+                        color: theme.palette.primary.contrastText,
                       }}
                     >
                       2
                     </Box>
-                    <Typography variant="h6" fontWeight="bold">
-                      Subject Assignment
+                    <Typography variant="h6" fontWeight={700} color="text.primary">
+                      {t("teachers.subjectAssignment")}
                     </Typography>
                   </Box>
 
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <FormControl fullWidth size="small" sx={{ maxWidth: 200 }}>
-                      <InputLabel>Academic Year</InputLabel>
+                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                    <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 220 }, minWidth: 180 }}>
+                      <InputLabel>{t("students.academicYear")}</InputLabel>
                       <Select
-                        label="Academic Year"
+                        label={t("students.academicYear")}
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(e.target.value)}
                       >
@@ -576,21 +610,20 @@ export default function ViceTeachersPage() {
                       </Select>
                     </FormControl>
 
-                    <FormControl fullWidth size="small" sx={{ maxWidth: 200 }}>
-                      <InputLabel>Subject</InputLabel>
+                    <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 220 }, minWidth: 180 }}>
+                      <InputLabel>{t("teachers.subject")}</InputLabel>
                       <Select
-                        label="Subject"
+                        label={t("teachers.subject")}
                         value={selectedSubjectId}
                         onChange={(e) => setSelectedSubjectId(e.target.value)}
                         disabled={isLoadingSubjects || !selectedYear}
                       >
                         {isLoadingSubjects ? (
                           <MenuItem disabled>
-                            <CircularProgress size={20} sx={{ mr: 1 }} />
-                            Loading...
+                            <LoadingRegion />
                           </MenuItem>
                         ) : subjects.length === 0 ? (
-                          <MenuItem disabled>No subjects available</MenuItem>
+                          <MenuItem disabled>{t("teachers.noSubjectsAvailable", "No subjects available")}</MenuItem>
                         ) : (
                           subjects.map((s) => (
                             <MenuItem key={s.id} value={s.id}>
@@ -601,40 +634,41 @@ export default function ViceTeachersPage() {
                       </Select>
                     </FormControl>
 
-                    <IconButton
+                    <AccessibleIconButton
+                      label={t("teachers.addSubject", "Add subject")}
                       onClick={() => setOpenAddSubject(true)}
                       sx={{
-                        backgroundColor: "#ffc107",
-                        color: "#000",
-                        "&:hover": { backgroundColor: "#ffca2c" },
+                        backgroundColor: theme.palette.primary.main,
+                        color: theme.palette.primary.contrastText,
+                        "&:hover": { backgroundColor: theme.palette.primary.dark },
                       }}
                     >
                       <AddIcon />
-                    </IconButton>
+                    </AccessibleIconButton>
                   </Box>
                 </Stack>
               </Card>
             </Stack>
-            <Card sx={{ p: 3, borderRadius: "16px", backgroundColor: "#fff" }}>
+            <Card sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px", backgroundColor: theme.palette.background.paper }}>
             <Stack spacing={2}>
               <Box sx={{ display: "flex", gap: 2 }}>
                 <Box
                   sx={{
                     width: 32,
                     height: 32,
-                    backgroundColor: "#ffc107",
+                    backgroundColor: theme.palette.primary.main,
                     borderRadius: "8px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontWeight: "bold",
-                    color: "#000",
+                    fontWeight: 700,
+                    color: theme.palette.primary.contrastText,
                   }}
                 >
                   3
                 </Box>
-                <Typography variant="h6" fontWeight="bold">
-                  Assign Classes
+                <Typography variant="h6" fontWeight={700} color="text.primary">
+                  {t("teachers.assignClasses")}
                 </Typography>
               </Box>
 
@@ -646,34 +680,36 @@ export default function ViceTeachersPage() {
                 <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                   {classes.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      No classes available for selected year
+                      {t("teachers.noClassesForYear")}
                     </Typography>
                   ) : (
                     classes.map((cls) => {
                       const isSelected = selectedClassIds.includes(cls.classId);
 
                       return (
-                        <Box
+                        <Button
                           key={cls.classId}
                           onClick={() => toggleClassSelection(cls.classId)}
+                          aria-pressed={isSelected}
+                          aria-label={`${t("students.class")} ${cls.className}`}
                           sx={{
                             width: 44,
                             height: 44,
                             borderRadius: "50%",
-                            backgroundColor: isSelected ? "#000" : "#ffc107",
-                            color: isSelected ? "#ffc107" : "#000",
+                            backgroundColor: isSelected ? theme.palette.text.primary : theme.palette.primary.main,
+                            color: isSelected ? theme.palette.primary.main : theme.palette.primary.contrastText,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            fontWeight: "bold",
-                            cursor: "pointer",
+                            fontWeight: 700,
                             transition: "0.2s",
-                            border: isSelected ? "2px solid #ffc107" : "none",
+                            border: isSelected ? `2px solid ${theme.palette.primary.main}` : "none",
                             "&:hover": { transform: "scale(1.1)" },
+                            minWidth: 44,
                           }}
                         >
                           {cls.className}
-                        </Box>
+                        </Button>
                       );
                     })
                   )}
@@ -694,7 +730,7 @@ export default function ViceTeachersPage() {
           )}
           {assignmentSuccess && (
             <Alert severity="success" sx={{ mt: 2 }} onClose={() => setAssignmentSuccess(false)}>
-              Teacher assigned successfully!
+              {t("teachers.assignedSuccess", "Teacher assigned successfully!")}
             </Alert>
           )}
 
@@ -710,21 +746,22 @@ export default function ViceTeachersPage() {
               }
               onClick={handleAssignTeacher}
               sx={{
-                backgroundColor: "#ffc107",
-                color: "#000",
-                px: 6,
+                backgroundColor: theme.palette.primary.main,
+                color: theme.palette.primary.contrastText,
+                px: { xs: 3, md: 6 },
                 py: 1.5,
-                fontWeight: "bold",
-                "&:hover": { backgroundColor: "#ffca2c" },
+                fontWeight: 700,
+                textTransform: "none",
+                "&:hover": { backgroundColor: theme.palette.primary.dark },
               }}
             >
               {isAssigningTeacher ? (
                 <>
                   <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Processing...
+                  {t("teachers.processing")}
                 </>
               ) : (
-                "Create & Assign Teacher"
+                t("teachers.createAndAssignTeacher")
               )}
             </Button>
           </Box>
@@ -734,23 +771,24 @@ export default function ViceTeachersPage() {
         </Stack>
 
         {/* Add Teacher Modal */}
-        <Dialog open={openAddTeacher} onClose={handleCloseTeacherDialog}>
+        <Dialog open={openAddTeacher} onClose={handleCloseTeacherDialog} fullWidth maxWidth="sm">
           <DialogTitle>
-            Add New Teacher
-            <IconButton
+            {t("teachers.addNewTeacher")}
+            <AccessibleIconButton
+              label={t("common.closeMenu")}
               onClick={handleCloseTeacherDialog}
               sx={{ float: "right" }}
             >
               <CloseIcon />
-            </IconButton>
+            </AccessibleIconButton>
           </DialogTitle>
 
           <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1, minWidth: 400 }}>
+            <Stack spacing={2} sx={{ mt: 1, minWidth: { xs: 0, sm: 400 } }}>
               {/* Success Message */}
               {teacherSuccess && (
                 <Alert severity="success">
-                  Teacher added successfully!
+                  {t("teachers.addedSuccess", "Teacher added successfully!")}
                 </Alert>
               )}
 
@@ -760,8 +798,8 @@ export default function ViceTeachersPage() {
               )}
 
               <TextField
-                label="First Name"
-                placeholder="First Name"
+                label={t("modal.firstName")}
+                placeholder={t("modal.firstName")}
                 value={teacherForm.firstName}
                 onChange={(e) =>
                   setTeacherForm({ ...teacherForm, firstName: e.target.value })
@@ -770,8 +808,8 @@ export default function ViceTeachersPage() {
                 fullWidth
               />
               <TextField
-                label="Middle Name"
-                placeholder="Middle Name"
+                label={t("modal.middleNameOptional")}
+                placeholder={t("modal.middleNameOptional")}
                 value={teacherForm.middleName}
                 onChange={(e) =>
                   setTeacherForm({ ...teacherForm, middleName: e.target.value })
@@ -779,8 +817,8 @@ export default function ViceTeachersPage() {
                 fullWidth
               />
               <TextField
-                label="Last Name"
-                placeholder="Last Name"
+                label={t("modal.lastName")}
+                placeholder={t("modal.lastName")}
                 value={teacherForm.lastName}
                 onChange={(e) =>
                   setTeacherForm({ ...teacherForm, lastName: e.target.value })
@@ -789,9 +827,9 @@ export default function ViceTeachersPage() {
                 fullWidth
               />
               <TextField
-                label="Email"
+                label={t("modal.email")}
                 type="email"
-                placeholder="Email"
+                placeholder={t("modal.email")}
                 value={teacherForm.email}
                 onChange={(e) =>
                   setTeacherForm({ ...teacherForm, email: e.target.value })
@@ -800,8 +838,8 @@ export default function ViceTeachersPage() {
                 fullWidth
               />
               <TextField
-                label="Phone"
-                placeholder="Phone"
+                label={t("modal.phone")}
+                placeholder={t("modal.phone")}
                 type="tel"
                 value={teacherForm.phone}
                 onChange={(e) =>
@@ -809,11 +847,11 @@ export default function ViceTeachersPage() {
                 }
                 required
                 fullWidth
-                helperText="Enter phone number (8-15 digits)"
+                helperText={t("teachers.phoneLength", "Enter phone number (8-15 digits)")}
               />
               <TextField
-                label="Qualifications"
-                placeholder="Qualifications"
+                label={t("teachers.qualifications", "Qualifications")}
+                placeholder={t("teachers.qualifications", "Qualifications")}
                 value={teacherForm.qualifications}
                 onChange={(e) =>
                   setTeacherForm({
@@ -826,8 +864,8 @@ export default function ViceTeachersPage() {
                 fullWidth
               />
               <TextField
-                label="Department"
-                placeholder="Department (must match backend)"
+                label={t("students.department")}
+                placeholder={t("teachers.departmentHelp", "Department (must match backend)")}
                 value={teacherForm.department}
                 onChange={(e) =>
                   setTeacherForm({
@@ -846,18 +884,18 @@ export default function ViceTeachersPage() {
                 fullWidth
                 sx={{
                   mt: 2,
-                  backgroundColor: "#ffc107",
-                  color: "#000",
-                  "&:hover": { backgroundColor: "#ffca2c" },
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  "&:hover": { backgroundColor: theme.palette.primary.dark },
                 }}
               >
                 {isSavingTeacher ? (
                   <>
                     <CircularProgress size={20} sx={{ mr: 1 }} />
-                    Saving...
+                    {t("modal.saving")}
                   </>
                 ) : (
-                  "Save Teacher"
+                  t("teachers.saveTeacher", "Save Teacher")
                 )}
               </Button>
             </Stack>
@@ -865,26 +903,27 @@ export default function ViceTeachersPage() {
         </Dialog>
 
         {/* Add Subject Modal */}
-        <Dialog open={openAddSubject} onClose={() => setOpenAddSubject(false)}>
+        <Dialog open={openAddSubject} onClose={() => setOpenAddSubject(false)} fullWidth maxWidth="sm">
           <DialogTitle>
-            Add New Subject
-            <IconButton
+            {t("teachers.addSubject", "Add New Subject")}
+            <AccessibleIconButton
+              label={t("common.closeMenu")}
               onClick={() => setOpenAddSubject(false)}
               sx={{ float: "right" }}
             >
               <CloseIcon />
-            </IconButton>
+            </AccessibleIconButton>
           </DialogTitle>
 
           <DialogContent>
             <Stack spacing={2}>
               <TextField
-                placeholder="Subject name"
+                placeholder={t("teachers.subjectName", "Subject name")}
                 onChange={(e) => setSubjectName(e.target.value)}
               />
 
               <Alert severity="info">
-                Subject will be created for stage/year: <b>{selectedYear || "Not selected"}</b>
+                {t("teachers.subjectForYear", "Subject will be created for stage/year:")} <b>{selectedYear || t("common.notSelected")}</b>
               </Alert>
 
               <RadioGroup
@@ -896,17 +935,26 @@ export default function ViceTeachersPage() {
                 <FormControlLabel
                   value="academic"
                   control={<Radio />}
-                  label="Academic Subject"
+                  label={t("teachers.academicSubject", "Academic Subject")}
                 />
                 <FormControlLabel
                   value="competency"
                   control={<Radio />}
-                  label="Competency (Jadarat)"
+                  label={t("teachers.competencyJadarat", "Competency (Jadarat)")}
                 />
               </RadioGroup>
 
-              <Button variant="contained" onClick={handleSaveSubject}>
-                Save Subject
+              <Button
+                variant="contained"
+                onClick={handleSaveSubject}
+                sx={{
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  textTransform: "none",
+                  "&:hover": { backgroundColor: theme.palette.primary.dark },
+                }}
+              >
+                {t("teachers.saveSubject", "Save Subject")}
               </Button>
             </Stack>
           </DialogContent>
@@ -915,21 +963,28 @@ export default function ViceTeachersPage() {
 
       <Dialog open={openTeachersList} onClose={() => setOpenTeachersList(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          Teachers List
-          <IconButton onClick={() => setOpenTeachersList(false)} sx={{ float: "right" }}>
+          {t("teachers.teachersList")}
+          <AccessibleIconButton label={t("common.closeMenu")} onClick={() => setOpenTeachersList(false)} sx={{ float: "right" }}>
             <CloseIcon />
-          </IconButton>
+          </AccessibleIconButton>
         </DialogTitle>
         <DialogContent>
-          <Button variant="outlined" onClick={loadTeachers} sx={{ mb: 2 }}>
-            Refresh
+          <Button
+            variant="outlined"
+            onClick={loadTeachers}
+            sx={{ mb: 2, textTransform: "none", borderColor: theme.palette.divider, color: theme.palette.text.primary }}
+          >
+            {t("common.refresh")}
           </Button>
           <TableContainer component={Paper}>
             <Table size="small">
+              <caption style={{ textAlign: "left", padding: "8px 16px", fontWeight: 600 }}>
+                {t("teachers.teachersList")}
+              </caption>
               <TableHead>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Name</TableCell>
+                  <TableCell>{t("teachers.id")}</TableCell>
+                  <TableCell>{t("teachers.name")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -941,7 +996,7 @@ export default function ViceTeachersPage() {
                 ))}
                 {teachers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2}>No teachers available</TableCell>
+                    <TableCell colSpan={2}>{t("teachers.noTeachersAvailable")}</TableCell>
                   </TableRow>
                 )}
               </TableBody>

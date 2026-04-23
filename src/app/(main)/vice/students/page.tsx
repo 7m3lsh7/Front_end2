@@ -9,8 +9,12 @@ import { ClassesAPI } from '@/data/classes.api';
 import { ViceStudentsAPI } from '@/data/vice-students.api';
 import type { Class } from '@/types/subject.types';
 import type { ViceDepartment, ViceLevel } from '@/types/vice/students';
+import { useLanguage } from '@/context/LanguageContext';
+import LoadingRegion from '@/components/a11y/LoadingRegion';
+import { appToast } from '@/hooks/useAppToast';
 
 export default function ViceStudentsPage() {
+    const { t } = useLanguage();
     const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
     const [yearId, setYearId] = useState<string>('2024-2025');
     const [department, setDepartment] = useState<ViceDepartment>('OM');
@@ -43,7 +47,7 @@ export default function ViceStudentsPage() {
             const data = await ClassesAPI.getByYear(yearId);
             setClasses(data);
         } catch (e: unknown) {
-            setClassesError(e instanceof Error ? e.message : 'Failed to load classes');
+            setClassesError(e instanceof Error ? e.message : t('students.failedLoadClasses', 'Failed to load classes'));
             setClasses([]);
         } finally {
             setClassesLoading(false);
@@ -69,7 +73,7 @@ export default function ViceStudentsPage() {
                 }))
             );
         } catch (e: unknown) {
-            setStudentsError(e instanceof Error ? e.message : 'Failed to load students');
+            setStudentsError(e instanceof Error ? e.message : t('students.failedLoadStudents', 'Failed to load students'));
             setStudents([]);
         } finally {
             setStudentsLoading(false);
@@ -91,7 +95,7 @@ export default function ViceStudentsPage() {
     const handleCreateClass = async () => {
         setCreatingClassError(null);
         if (!canCreateClass) {
-            setCreatingClassError('Please fill required class fields');
+            setCreatingClassError(t('students.fillClassFields', 'Please fill required class fields'));
             return;
         }
         setCreatingClass(true);
@@ -105,7 +109,8 @@ export default function ViceStudentsPage() {
             await loadClasses();
             setSelectedClassId(created.classId);
         } catch (e: unknown) {
-            setCreatingClassError(e instanceof Error ? e.message : 'Failed to create class');
+            setCreatingClassError(e instanceof Error ? e.message : t('students.failedCreateClass', 'Failed to create class'));
+            appToast.error(e instanceof Error ? e.message : t('students.failedCreateClass', 'Failed to create class'));
         } finally {
             setCreatingClass(false);
         }
@@ -121,7 +126,7 @@ export default function ViceStudentsPage() {
                 <Container maxWidth="lg">
                     <Box sx={{ mb: 6 }}>
                         <Typography variant="h3" fontWeight="bold" sx={{ color: '#000' }}>
-                            Students Management
+                            {t('students.studentsManagement')}
                         </Typography>
                     </Box>
 
@@ -177,25 +182,25 @@ export default function ViceStudentsPage() {
                                             }}>
                                                 1
                                             </Box>
-                                            <Typography variant="h6" fontWeight="bold">Create New Class</Typography>
+                                            <Typography variant="h6" fontWeight="bold">{t('students.createNewClass')}</Typography>
                                         </Box>
 
                                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                                             <FormControl fullWidth size="small" sx={{ maxWidth: 200, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                                                <InputLabel>Academic Year</InputLabel>
-                                                <Select label="Academic Year" value={yearId} onChange={(e) => setYearId(String(e.target.value))}>
+                                                <InputLabel>{t('students.academicYear')}</InputLabel>
+                                                <Select label={t('students.academicYear')} value={yearId} onChange={(e) => setYearId(String(e.target.value))}>
                                                     <MenuItem value="2024-2025">2024-2025</MenuItem>
                                                 </Select>
                                             </FormControl>
                                             <FormControl fullWidth size="small" sx={{ maxWidth: 200, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                                                <InputLabel>Department</InputLabel>
-                                                <Select label="Department" value={department} onChange={(e) => setDepartment(e.target.value as ViceDepartment)}>
+                                                <InputLabel>{t('students.department')}</InputLabel>
+                                                <Select label={t('students.department')} value={department} onChange={(e) => setDepartment(e.target.value as ViceDepartment)}>
                                                     <MenuItem value="OM">OM</MenuItem>
                                                     <MenuItem value="SD">SD</MenuItem>
                                                 </Select>
                                             </FormControl>
                                             <TextField
-                                                placeholder="class name"
+                                                placeholder={t('students.className')}
                                                 size="small"
                                                 value={className}
                                                 onChange={(e) => setClassName(e.target.value)}
@@ -213,7 +218,7 @@ export default function ViceStudentsPage() {
                                                     '&:hover': { backgroundColor: '#ffca2c' }
                                                 }}
                                             >
-                                                {creatingClass ? 'Creating...' : 'Create class'}
+                                                {creatingClass ? t('students.creating') : t('students.createClass')}
                                             </Button>
                                         </Box>
                                         {creatingClassError && <Alert severity="error">{creatingClassError}</Alert>}
@@ -233,25 +238,24 @@ export default function ViceStudentsPage() {
                                             }}>
                                                 2
                                             </Box>
-                                            <Typography variant="h6" fontWeight="bold">Select Class</Typography>
+                                            <Typography variant="h6" fontWeight="bold">{t('students.selectClass')}</Typography>
                                         </Box>
 
                                         <Box>
                                             <FormControl fullWidth size="small" sx={{ backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                                                <InputLabel>Select Class</InputLabel>
+                                                <InputLabel>{t('students.selectClass')}</InputLabel>
                                                 <Select
-                                                    label="Select Class"
+                                                    label={t('students.selectClass')}
                                                     value={selectedClassId ?? ''}
                                                     onChange={(e) => setSelectedClassId(Number(e.target.value))}
                                                     disabled={classesLoading}
                                                 >
                                                     {classesLoading ? (
                                                         <MenuItem disabled>
-                                                            <CircularProgress size={18} sx={{ mr: 1 }} />
-                                                            Loading...
+                                                            <LoadingRegion />
                                                         </MenuItem>
                                                     ) : classes.length === 0 ? (
-                                                        <MenuItem disabled>No classes available</MenuItem>
+                                                        <MenuItem disabled>{t('teachers.noClassesForYear')}</MenuItem>
                                                     ) : (
                                                         classes.map((c) => (
                                                             <MenuItem key={c.classId} value={c.classId}>
@@ -281,7 +285,7 @@ export default function ViceStudentsPage() {
                                                 }}>
                                                     3
                                                 </Box>
-                                                <Typography variant="h6" fontWeight="bold">Student Management</Typography>
+                                            <Typography variant="h6" fontWeight="bold">{t('students.studentManagement')}</Typography>
                                             </Box>
                                             <Button
                                                 variant="contained"
@@ -294,7 +298,7 @@ export default function ViceStudentsPage() {
                                                     '&:hover': { backgroundColor: '#ffca2c' }
                                                 }}
                                             >
-                                                Add New Student
+                                                {t('students.addNewStudent')}
                                             </Button>
                                         </Box>
 
@@ -312,17 +316,20 @@ export default function ViceStudentsPage() {
                                         </Box>
 
                                         {/* Students List Title */}
-                                        <Typography variant="h6" fontWeight="bold">Students List</Typography>
+                                        <Typography variant="h6" fontWeight="bold">{t('students.studentsList')}</Typography>
 
                                         {/* Table */}
-                                        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0' }}>
+                                        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0' }} aria-busy={studentsLoading}>
                                             <Table>
+                                                <caption style={{ textAlign: 'left', padding: '8px 16px', fontWeight: 600 }}>
+                                                    {t('students.studentsList')}
+                                                </caption>
                                                 <TableHead sx={{ backgroundColor: '#ffc107' }}>
                                                     <TableRow>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>Student Name</TableCell>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>Student ID</TableCell>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>Department</TableCell>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>Class</TableCell>
+                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.studentName')}</TableCell>
+                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.studentId')}</TableCell>
+                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.department')}</TableCell>
+                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.class')}</TableCell>
                                                     </TableRow>
                                                 </TableHead>
                                                 <TableBody>
@@ -336,7 +343,7 @@ export default function ViceStudentsPage() {
                                                         </TableRow>
                                                     ) : students.length === 0 ? (
                                                         <TableRow>
-                                                            <TableCell colSpan={4}>No students found</TableCell>
+                                                            <TableCell colSpan={4}>{t('students.noStudentsFound')}</TableCell>
                                                         </TableRow>
                                                     ) : (
                                                         students.map((s) => (
@@ -363,7 +370,7 @@ export default function ViceStudentsPage() {
                                                     backgroundColor: '#ffc107', color: '#000', fontWeight: 'bold', '&:hover': { backgroundColor: '#ffca2c' }
                                                 }}
                                             >
-                                                All Student
+                                                {t('students.allStudents')}
                                             </Button>
                                             <Box sx={{ display: 'flex', gap: 2 }}>
                                                 <Button
@@ -373,7 +380,7 @@ export default function ViceStudentsPage() {
                                                         backgroundColor: '#ffc107', color: '#000', fontWeight: 'bold', '&:hover': { backgroundColor: '#ffca2c' }
                                                     }}
                                                 >
-                                                    Add Student
+                                                    {t('students.addStudent')}
                                                 </Button>
                                                 <Button
                                                     variant="contained"
@@ -381,7 +388,7 @@ export default function ViceStudentsPage() {
                                                         backgroundColor: '#ffc107', color: '#000', fontWeight: 'bold', '&:hover': { backgroundColor: '#ffca2c' }
                                                     }}
                                                 >
-                                                    Select All Student
+                                                    {t('students.selectAllStudents')}
                                                 </Button>
                                             </Box>
                                         </Box>
@@ -400,7 +407,7 @@ export default function ViceStudentsPage() {
                 year={level}
                 department={department}
                 onSubmit={async (payload) => {
-                    if (!selectedClassId) throw new Error('Please select a class');
+                    if (!selectedClassId) throw new Error(t('modal.pleaseSelectClassFirst'));
                     await ViceStudentsAPI.create({
                         ...payload,
                         department,
@@ -408,6 +415,7 @@ export default function ViceStudentsPage() {
                         classId: selectedClassId,
                     });
                     await loadStudents();
+                    appToast.success(t('modal.studentAddedSuccess'));
                 }}
             />
         </Box >

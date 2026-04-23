@@ -23,102 +23,37 @@ import CalendarViewMonthIcon from "@mui/icons-material/CalendarViewMonth";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import SharedNavbar from "@/components/layout/SharedNavbar";
-
-const HERO_SUBTITLE =
-  "One place for grades, reports, and progress. For students, teachers, and admins.";
-
-const HERO_BULLETS = [
-  "View quarter, final, and competency grades in one dashboard",
-  "Switch between academic years (Junior, Wheeler, Senior) with one click",
-  "Secure login and role-based access for everyone",
-];
-
-const GOAL_PARAGRAPHS = [
-  `School Grading System is a central platform for managing and viewing student grades. It brings quarter grades, final exam results, and competency (Jadarat) assessments into one clear, easy-to-use place.`,
-  `Students can see their performance by subject and by academic year. They can compare their results across years (e.g. Junior vs Senior) and track progress over time. Teachers and admins use the same system to enter and manage grades, so data stays consistent and up to date.`,
-  `The goal is transparency: everyone sees the same numbers, reports are accurate, and the school has a single source of truth for academic performance.`,
-];
-
-const WHO_IT_FOR = [
-  {
-    icon: <PersonIcon sx={{ fontSize: 36 }} />,
-    title: "Students",
-    description:
-      "Access your quarter grades, final grades, and competency results. Switch between academic years (Junior, Wheeler, Senior) to view past and current performance. Your dashboard shows everything in one place.",
-  },
-  {
-    icon: <MenuBookIcon sx={{ fontSize: 36 }} />,
-    title: "Teachers",
-    description:
-      "Manage and submit grades for your classes. Enter quarter and final results, update competency assessments, and keep records consistent. The system supports your workflow and keeps students informed.",
-  },
-  {
-    icon: <AdminPanelSettingsIcon sx={{ fontSize: 36 }} />,
-    title: "Admins",
-    description:
-      "Oversee the full grading system: users, roles, and data. Ensure accuracy, run reports, and maintain the platform so students and teachers have a reliable place for grades and progress.",
-  },
-];
-
-const FEATURES = [
-  {
-    icon: <CalendarViewMonthIcon sx={{ fontSize: 28 }} />,
-    title: "Quarter grades",
-    detail: "Track performance per subject during the quarter. View your grades and compare with quarter targets.",
-  },
-  {
-    icon: <AssignmentIcon sx={{ fontSize: 28 }} />,
-    title: "Final grades",
-    detail: "Semester final exam results in one table. See your scores and overall average per year.",
-  },
-  {
-    icon: <EmojiEventsIcon sx={{ fontSize: 28 }} />,
-    title: "Competencies (Jadarat)",
-    detail: "Specialization and competency assessments. Pass/fail and attempt history for each competency.",
-  },
-  {
-    icon: <EventNoteIcon sx={{ fontSize: 28 }} />,
-    title: "Academic years",
-    detail: "Switch between Junior, Wheeler, and Senior. View grades for any year you have completed or are in.",
-  },
-  {
-    icon: <CheckCircleOutlineIcon sx={{ fontSize: 28 }} />,
-    title: "Calculated averages",
-    detail: "Average grade and pass rates are calculated on the platform from your grades for clarity and consistency.",
-  },
-];
-
-const ACHIEVEMENTS = [
-  {
-    icon: <GroupsIcon sx={{ fontSize: 40 }} />,
-    value: "500+",
-    label: "Students on the platform",
-    detail: "Active students viewing and tracking their grades every term.",
-  },
-  {
-    icon: <AssignmentIcon sx={{ fontSize: 40 }} />,
-    value: "100%",
-    label: "Grades tracked digitally",
-    detail: "All quarter, final, and competency grades stored and visible in one system.",
-  },
-  {
-    icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
-    value: "98%",
-    label: "Satisfaction rate",
-    detail: "Students and StudentAffairs report high satisfaction with clarity and ease of use.",
-  },
-  {
-    icon: <EmojiEventsIcon sx={{ fontSize: 40 }} />,
-    value: "A+",
-    label: "Accuracy in reporting",
-    detail: "Single source of truth reduces errors and keeps reports reliable.",
-  },
-];
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function HomePage() {
   const theme = useTheme();
+  const { t } = useLanguage();
   const primary = theme.palette.primary.main;
   const primaryLight = alpha(primary, 0.12);
+  const HERO_BULLETS = [
+    t("home.heroBullet1"),
+    t("home.heroBullet2"),
+    t("home.heroBullet3"),
+  ];
+  const GOAL_PARAGRAPHS = [t("home.goal1"), t("home.goal2"), t("home.goal3")];
+  const WHO_IT_FOR = [
+    { icon: <PersonIcon sx={{ fontSize: 36 }} />, title: t("home.audience.studentsTitle"), description: t("home.audience.studentsDesc") },
+    { icon: <MenuBookIcon sx={{ fontSize: 36 }} />, title: t("home.audience.teachersTitle"), description: t("home.audience.teachersDesc") },
+    { icon: <AdminPanelSettingsIcon sx={{ fontSize: 36 }} />, title: t("home.audience.adminsTitle"), description: t("home.audience.adminsDesc") },
+  ];
+  const FEATURES = [
+    { icon: <CalendarViewMonthIcon sx={{ fontSize: 28 }} />, title: t("home.features.quarterTitle"), detail: t("home.features.quarterDetail") },
+    { icon: <AssignmentIcon sx={{ fontSize: 28 }} />, title: t("home.features.finalTitle"), detail: t("home.features.finalDetail") },
+    { icon: <EmojiEventsIcon sx={{ fontSize: 28 }} />, title: t("home.features.jadaratTitle"), detail: t("home.features.jadaratDetail") },
+    { icon: <EventNoteIcon sx={{ fontSize: 28 }} />, title: t("home.features.yearsTitle"), detail: t("home.features.yearsDetail") },
+    { icon: <CheckCircleOutlineIcon sx={{ fontSize: 28 }} />, title: t("home.features.averagesTitle"), detail: t("home.features.averagesDetail") },
+  ];
+  const ACHIEVEMENTS = [
+    { icon: <GroupsIcon sx={{ fontSize: 40 }} />, value: "500+", label: t("home.achievements.studentsLabel"), detail: t("home.achievements.studentsDetail") },
+    { icon: <AssignmentIcon sx={{ fontSize: 40 }} />, value: "100%", label: t("home.achievements.trackedLabel"), detail: t("home.achievements.trackedDetail") },
+    { icon: <TrendingUpIcon sx={{ fontSize: 40 }} />, value: "98%", label: t("home.achievements.satisfactionLabel"), detail: t("home.achievements.satisfactionDetail") },
+    { icon: <EmojiEventsIcon sx={{ fontSize: 40 }} />, value: "A+", label: t("home.achievements.accuracyLabel"), detail: t("home.achievements.accuracyDetail") },
+  ];
 
   return (
     <Box
@@ -185,7 +120,7 @@ export default function HomePage() {
                 fontSize: { xs: "1.75rem", sm: "2.25rem", md: "2.5rem" },
               }}
             >
-              School Grading System
+              {t("home.title")}
             </Typography>
             <Typography
               variant="body1"
@@ -196,7 +131,7 @@ export default function HomePage() {
                 fontSize: { xs: "0.95rem", md: "1rem" },
               }}
             >
-              {HERO_SUBTITLE}
+              {t("home.subtitle")}
             </Typography>
             <Stack
               spacing={1}
@@ -250,7 +185,7 @@ export default function HomePage() {
                 },
               }}
             >
-              Sign in
+              {t("auth.signIn")}
             </Button>
           </Box>
         </Container>
@@ -287,7 +222,7 @@ export default function HomePage() {
                 bgcolor: primary,
               }}
             />
-            Our goal
+            {t("home.goalTitle")}
           </Typography>
           <Stack spacing={2}>
             {GOAL_PARAGRAPHS.map((paragraph, i) => (
@@ -325,7 +260,7 @@ export default function HomePage() {
               mb: 1,
             }}
           >
-            Who is it for?
+            {t("home.audienceTitle")}
           </Typography>
           <Typography
             variant="body2"
@@ -337,7 +272,7 @@ export default function HomePage() {
               mx: "auto",
             }}
           >
-            The platform serves students, teachers, and administrators with role-based access and tailored views.
+            {t("home.audienceSubtitle")}
           </Typography>
           <Box
             sx={{
@@ -413,7 +348,7 @@ export default function HomePage() {
             mb: 1,
           }}
         >
-          What you can do
+          {t("home.featuresTitle")}
         </Typography>
         <Typography
           variant="body2"
@@ -423,7 +358,7 @@ export default function HomePage() {
             mb: 4,
           }}
         >
-          Key features available on the platform.
+          {t("home.featuresSubtitle")}
         </Typography>
         <Box
           sx={{
@@ -508,7 +443,7 @@ export default function HomePage() {
               mb: 1,
             }}
           >
-            School achievements
+            {t("home.achievementsTitle")}
           </Typography>
           <Typography
             variant="body2"
@@ -518,7 +453,7 @@ export default function HomePage() {
               mb: 4,
             }}
           >
-            Numbers that reflect our reach and impact.
+            {t("home.achievementsSubtitle")}
           </Typography>
           <Box
             sx={{
@@ -620,7 +555,7 @@ export default function HomePage() {
               mb: 1,
             }}
           >
-            Ready to get started?
+            {t("home.ctaTitle")}
           </Typography>
           <Typography
             variant="body2"
@@ -629,7 +564,7 @@ export default function HomePage() {
               mb: 2,
             }}
           >
-            Sign in to access your grades, switch between academic years, and view quarter, final, and competency results.
+            {t("home.ctaSubtitle")}
           </Typography>
           <Button
             component={Link}
@@ -649,7 +584,7 @@ export default function HomePage() {
               },
             }}
           >
-            Sign in
+            {t("auth.signIn")}
           </Button>
         </Box>
       </Container>

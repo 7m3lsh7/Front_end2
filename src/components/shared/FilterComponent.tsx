@@ -6,9 +6,11 @@ import {
     Typography,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { useLanguage } from "@/context/LanguageContext";
 
 const Filter = () => {
     const theme = useTheme();
+    const { t } = useLanguage();
     const [type, setType] = useState("");
     const [level, setLevel] = useState("");
 
@@ -65,7 +67,7 @@ const Filter = () => {
                 {["OM", "SD"].map((item) => (
                     <ToggleButton key={item} value={item} sx={buttonStyle}>
                         <Box className="circle" />
-                        <Typography variant="h1">{item}</Typography>
+                        <Typography variant="h1">{item === "OM" ? t("students.department") + " OM" : t("students.department") + " SD"}</Typography>
                     </ToggleButton>
                 ))}
             </ToggleButtonGroup>
@@ -77,7 +79,7 @@ const Filter = () => {
                 onChange={(e, val) => setLevel(val)}
                 sx={{ gap: "32px" }}
             >
-                {["Junior", "Wheeler", "Senior"].map((item) => (
+                {[t("vice.junior", "Junior"), t("vice.wheeler", "Wheeler"), t("vice.senior", "Senior")].map((item) => (
                     <ToggleButton key={item} value={item} sx={buttonStyle}>
                         <Box className="circle" />
                         <Typography variant="h1">{item}</Typography>

@@ -17,12 +17,16 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LanguageIcon from '@mui/icons-material/Language';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { navbarData } from '@/data/navbar';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
+import { useThemeMode } from '@/context/ThemeModeContext';
+import AccessibleIconButton from '@/components/a11y/AccessibleIconButton';
 
 const LOGO_SRC = '/Images/login/logo.png';
 
@@ -34,6 +38,7 @@ export default function SharedNavbar() {
     const { user, logout } = useAuth();
     const router = useRouter();
     const { t, toggleLanguage } = useLanguage();
+    const { mode, toggleMode } = useThemeMode();
     const {
         title,
         subtitle,
@@ -52,37 +57,37 @@ export default function SharedNavbar() {
                 .filter((l) => l.href !== "/years")
                 .map((l) => ({
                     href: l.href,
-                    label: l.href === "/" ? t("home") : l.href === "/about" ? t("about") : l.label,
+                    label: l.href === "/" ? t("common.home") : l.href === "/about" ? t("common.about") : l.label,
                 }));
         }
 
         // Logged in: role-based nav
         if (user.role === "Student") {
             return [
-                { href: "/student", label: t("home") },
-                { href: "/student/years", label: t("years") },
-                { href: "/about", label: t("about") },
+                { href: "/student", label: t("common.home") },
+                { href: "/student/years", label: t("common.years") },
+                { href: "/about", label: t("common.about") },
             ];
         }
 
         if (user.role === "Teacher") {
             return [
-                { href: "/teacher", label: t("home") },
-                { href: "/about", label: t("about") },
+                { href: "/teacher", label: t("common.home") },
+                { href: "/about", label: t("common.about") },
             ];
         }
 
         if (user.role === "StudentAffairs") {
             return [
-                { href: "/vice", label: t("home") },
-                { href: "/about", label: t("about") },
+                { href: "/vice", label: t("common.home") },
+                { href: "/about", label: t("common.about") },
             ];
         }
 
         // Admin or others
         return [
-            { href: "/admin", label: t("home") },
-            { href: "/about", label: t("about") },
+            { href: "/admin", label: t("common.home") },
+            { href: "/about", label: t("common.about") },
         ];
     }, [defaultCenterLinks, t, user]);
 
@@ -181,14 +186,16 @@ export default function SharedNavbar() {
                         </Button>
                         )}
                         {/* Burger Menu (Mobile) */}
-                        <IconButton
+                        <AccessibleIconButton
+                            label={t("common.openMenu")}
                             onClick={() => setOpenDrawer(true)}
                             sx={{ display: { xs: 'flex', md: 'none' } }}
                         >
                             <MenuIcon />
-                        </IconButton>
+                        </AccessibleIconButton>
                         {/* Icons (Desktop) */}
-                        <IconButton
+                        <AccessibleIconButton
+                            label={t("common.language")}
                             onClick={toggleLanguage}
                             sx={{
                                 display: { xs: 'none', md: 'flex' },
@@ -198,9 +205,22 @@ export default function SharedNavbar() {
                             }}
                         >
                             <LanguageIcon />
-                        </IconButton>
+                        </AccessibleIconButton>
+                        <AccessibleIconButton
+                            label={mode === "dark" ? t("common.lightMode") : t("common.darkMode")}
+                            onClick={toggleMode}
+                            sx={{
+                                display: { xs: 'none', md: 'flex' },
+                                backgroundColor: theme.palette.background.default,
+                                color: theme.palette.text.primary,
+                                borderRadius: '12px',
+                            }}
+                        >
+                            {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+                        </AccessibleIconButton>
 {user && (
-                        <IconButton
+                        <AccessibleIconButton
+                            label={t("common.logout")}
                             onClick={handleLogout}
                             sx={{
                                 display: { xs: 'none', md: 'flex' },
@@ -210,7 +230,7 @@ export default function SharedNavbar() {
                             }}
                         >
                             <LogoutIcon />
-                        </IconButton>
+                        </AccessibleIconButton>
 )}
                     </Stack>
                 </Toolbar>
@@ -239,10 +259,10 @@ export default function SharedNavbar() {
                     px={2}
                     py={2}
                 >
-                    <Typography variant="h4">{t("menu")}</Typography>
-                    <IconButton onClick={() => setOpenDrawer(false)}>
+                    <Typography variant="h4">{t("common.menu")}</Typography>
+                    <AccessibleIconButton label={t("common.closeMenu")} onClick={() => setOpenDrawer(false)}>
                         <CloseIcon />
-                    </IconButton>
+                    </AccessibleIconButton>
                 </Stack>
 
                 {/* Links */}
@@ -284,7 +304,21 @@ export default function SharedNavbar() {
                                 p: 2
                             }}
                         >
-                            {t("language")}
+                            {t("common.language")}
+                        </Button>
+                        <Button
+                            onClick={toggleMode}
+                            startIcon={mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+                            sx={{
+                                backgroundColor: theme.palette.background.default,
+                                color: theme.palette.text.primary,
+                                justifyContent: 'flex-start',
+                                textTransform: 'none',
+                                borderRadius: '12px',
+                                p: 2
+                            }}
+                        >
+                            {mode === "dark" ? t("common.lightMode") : t("common.darkMode")}
                         </Button>
 {user && (
                         <Button
@@ -299,7 +333,7 @@ export default function SharedNavbar() {
                             p: 2
                         }}
                     >
-                        {t("logout")}
+                        {t("common.logout")}
                     </Button>
 )}
                     </Stack>
