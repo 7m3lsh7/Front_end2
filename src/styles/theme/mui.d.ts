@@ -5,6 +5,14 @@ import type { CSSProperties } from 'react';
 
 
 declare module '@mui/material/styles' {
+    interface TypeBackground {
+        main: string;
+    }
+
+    interface PartialTypeBackground {
+        main?: string;
+    }
+
     interface TypographyVariants {
         body3: CSSProperties;
         body4: CSSProperties;
