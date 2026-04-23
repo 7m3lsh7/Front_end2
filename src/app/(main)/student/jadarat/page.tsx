@@ -17,7 +17,6 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useStudentYear } from "@/context/StudentYearContext";
-import { jadaratGradesFallback } from "@/data/Student/gradesFallback";
 import { studentService } from "@/services/student.service";
 import { calculateJadaratPassRate } from "@/utils/grades";
 import type { JadaratGradeRow } from "@/types/Student-api/grades";
@@ -44,12 +43,12 @@ export default function JadaratGradesPage() {
       try {
         const res = await studentService.getJadaratGrades(displayYear);
         if (!cancelled) {
-          setGrades(res.grades?.length ? res.grades : jadaratGradesFallback);
+          setGrades(res.grades ?? []);
         }
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load grades");
-          setGrades(jadaratGradesFallback);
+          setGrades([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -143,7 +142,7 @@ export default function JadaratGradesPage() {
 
       {error && (
         <Typography color="warning.main" sx={{ mb: 1 }}>
-          {error} — showing default data.
+          {error}
         </Typography>
       )}
 

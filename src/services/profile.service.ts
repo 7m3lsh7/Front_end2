@@ -14,8 +14,6 @@ export interface ProfileResponse extends ProfileData {
  * (cookie / JWT) so the frontend only calls `/profile/me` without IDs.
  */
 
-const PROFILE_BASE_PATH =   process.env.NEXT_PUBLIC_API_URL;
-
 export const profileService = {
   /**
    * Get current user's profile.
@@ -23,7 +21,8 @@ export const profileService = {
    * GET `${API_BASE_URL}/profile/me`
    */
   async getMyProfile(): Promise<ProfileResponse> {
-    const res = await api.get<ProfileResponse>(`${PROFILE_BASE_PATH}/auth/me`);
+    // Base URL is already set in axios instance (`src/services/api.ts`)
+    const res = await api.get<ProfileResponse>("/Auth/me");
     return res.data;
   },
 };

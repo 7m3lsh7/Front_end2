@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
     AppBar,
     Toolbar,
@@ -22,36 +22,69 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { navbarData } from '@/data/navbar';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/context/LanguageContext';
 
 const LOGO_SRC = '/images/login/logo.png';
 
-const studentNavLinks = [
-    { label: 'Home', href: '/student' },
-    { label: 'Years', href: '/student/years' },
-];
+type NavLink = { label: string; href: string };
 
 export default function SharedNavbar() {
     const theme = useTheme();
     const [openDrawer, setOpenDrawer] = useState(false);
     const { user, logout } = useAuth();
     const router = useRouter();
+    const { t, toggleLanguage } = useLanguage();
     const {
         title,
         subtitle,
         centerLinks: defaultCenterLinks,
         profileHref,
-        userName,
-        userRole,
-        logoutHref,
     } = navbarData;
     const handleLogout = async () => {
         await logout();   
         router.replace("/login"); 
     };
-    const centerLinks = useMemo(
-        () => (user?.role === 'Student' ? studentNavLinks : defaultCenterLinks),
-        [user?.role, defaultCenterLinks]
-    );
+
+    const centerLinks = useMemo<NavLink[]>(() => {
+        // Not logged in: hide Years, keep Home/About.
+        if (!user) {
+            return defaultCenterLinks
+                .filter((l) => l.href !== "/years")
+                .map((l) => ({
+                    href: l.href,
+                    label: l.href === "/" ? t("home") : l.href === "/about" ? t("about") : l.label,
+                }));
+        }
+
+        // Logged in: role-based nav
+        if (user.role === "Student") {
+            return [
+                { href: "/student", label: t("home") },
+                { href: "/student/years", label: t("years") },
+                { href: "/about", label: t("about") },
+            ];
+        }
+
+        if (user.role === "Teacher") {
+            return [
+                { href: "/teacher", label: t("home") },
+                { href: "/about", label: t("about") },
+            ];
+        }
+
+        if (user.role === "StudentAffairs") {
+            return [
+                { href: "/vice", label: t("home") },
+                { href: "/about", label: t("about") },
+            ];
+        }
+
+        // Admin or others
+        return [
+            { href: "/admin", label: t("home") },
+            { href: "/about", label: t("about") },
+        ];
+    }, [defaultCenterLinks, t, user]);
 
     return (
         <>
@@ -156,6 +189,7 @@ export default function SharedNavbar() {
                         </IconButton>
                         {/* Icons (Desktop) */}
                         <IconButton
+                            onClick={toggleLanguage}
                             sx={{
                                 display: { xs: 'none', md: 'flex' },
                                 backgroundColor: theme.palette.primary.main,
@@ -205,7 +239,7 @@ export default function SharedNavbar() {
                     px={2}
                     py={2}
                 >
-                    <Typography variant="h4">Menu</Typography>
+                    <Typography variant="h4">{t("menu")}</Typography>
                     <IconButton onClick={() => setOpenDrawer(false)}>
                         <CloseIcon />
                     </IconButton>
@@ -239,6 +273,7 @@ export default function SharedNavbar() {
 
                         spacing={2}>
                         <Button
+                            onClick={toggleLanguage}
                             startIcon={<LanguageIcon />}
                             sx={{
                                 backgroundColor: theme.palette.primary.main,
@@ -249,7 +284,7 @@ export default function SharedNavbar() {
                                 p: 2
                             }}
                         >
-                            Language
+                            {t("language")}
                         </Button>
 {user && (
                         <Button
@@ -264,7 +299,7 @@ export default function SharedNavbar() {
                             p: 2
                         }}
                     >
-                        Logout
+                        {t("logout")}
                     </Button>
 )}
                     </Stack>

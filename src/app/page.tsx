@@ -105,7 +105,7 @@ const ACHIEVEMENTS = [
     icon: <TrendingUpIcon sx={{ fontSize: 40 }} />,
     value: "98%",
     label: "Satisfaction rate",
-    detail: "Students and staff report high satisfaction with clarity and ease of use.",
+    detail: "Students and StudentAffairs report high satisfaction with clarity and ease of use.",
   },
   {
     icon: <EmojiEventsIcon sx={{ fontSize: 40 }} />,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, IconButton, Button, Divider } from '@mui/material';
+import { Alert, Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, IconButton, Button, Divider } from '@mui/material';
 import SchoolIcon from '@mui/icons-material/School';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
@@ -19,12 +19,7 @@ export default function FinalGradesDashboard() {
 
     const [departmentFilter, setDepartmentFilter] = useState('om');
 
-    // Mock Data matching the image
-    const students = [
-        { id: '1', name: 'Ahmed Al-Mansouri', class: 'J1', sem1: 78, sem2: 61 },
-        { id: '2', name: 'Sarah Ahmed', class: 'J1', sem1: 85, sem2: 88 },
-        { id: '3', name: 'Mohamed Ali', class: 'J2', sem1: 70, sem2: 75 },
-    ];
+    const students: Array<{ id: string; name: string; class: string; sem1: number; sem2: number }> = [];
 
     return (
         <Box sx={{ position: 'relative', minHeight: '100vh', backgroundColor: '#000' }}>
@@ -120,6 +115,9 @@ export default function FinalGradesDashboard() {
                                     </Box>
 
                                     {/* Table */}
+                                    <Alert severity="warning">
+                                        Final grades endpoint is not integrated yet. No mock data is displayed.
+                                    </Alert>
                                     <TableContainer component={Paper} elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #eee' }}>
                                         <Table>
                                             <TableHead sx={{ backgroundColor: '#ffc107' }}>

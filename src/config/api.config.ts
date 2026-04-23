@@ -17,6 +17,8 @@ const REFRESH_TOKEN_KEY = "auth_refresh_token";
 
 const getAccessToken = (): string | null =>
   typeof window !== "undefined" ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+const getRefreshToken = (): string | null =>
+  typeof window !== "undefined" ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
 
 const processQueue = (error: unknown, token: string | null = null): void => {
   failedQueue.forEach((prom) => {
@@ -29,14 +31,25 @@ const processQueue = (error: unknown, token: string | null = null): void => {
 const getErrorMessage = async (res: Response): Promise<string> => {
   let errorMessage = "API request failed";
   try {
-    const errorData = await res.json().catch(() => null);
+    const errorData = await res.json().catch(() => null) as
+      | { message?: string; title?: string; errors?: Record<string, string[]> }
+      | null;
+
     if (typeof errorData?.message === "string" && errorData.message.trim()) {
       errorMessage = errorData.message;
+    } else if (typeof errorData?.title === "string" && errorData.title.trim()) {
+      errorMessage = errorData.title;
+    } else if (errorData?.errors && typeof errorData.errors === "object") {
+      const validationMessages = Object.values(errorData.errors)
+        .flat()
+        .filter(Boolean)
+        .join(" | ");
+      if (validationMessages) errorMessage = validationMessages;
     }
   } catch {
     // Keep fallback message.
   }
-  return errorMessage;
+  return `${errorMessage} (HTTP ${res.status})`;
 };
 
 export const secureFetch = async (
@@ -60,6 +73,15 @@ export const secureFetch = async (
     });
 
     if (res.status === 401 && !options?._retry) {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(ACCESS_TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+        }
+        throw new Error("Session expired. Please sign in again.");
+      }
+
       if (isRefreshing) {
         return new Promise<string | null>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -105,7 +127,7 @@ export const secureFetch = async (
           localStorage.removeItem(ACCESS_TOKEN_KEY);
           localStorage.removeItem(REFRESH_TOKEN_KEY);
         }
-        throw refreshError;
+        throw new Error("Session expired. Please sign in again.");
       } finally {
         isRefreshing = false;
       }

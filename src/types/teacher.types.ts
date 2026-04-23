@@ -7,9 +7,8 @@ export interface CreateTeacherPayload {
   hireDate: string;
   department: string;
   qualifications: string;
-  username: string;
   email: string;
-  role: "Teacher";
+  role: string;
   phone: string;
   fullName: {
     firstName: string;

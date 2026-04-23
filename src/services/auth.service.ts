@@ -29,12 +29,12 @@ export interface LoginPayload {
 export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
-    role: "Admin" | "Teacher" | "Student";
+    role: "Admin" | "Teacher" | "Student" | "Staff";
 }
 
 export interface MeResponse {
     userId: number;
-    role: "Admin" | "Teacher" | "Student";
+    role: "Admin" | "Teacher" | "Student" | "Staff";
     username: string;
 }
 
@@ -81,8 +81,14 @@ function parseUserFromToken(accessToken: string): MeResponse | null {
     const roleRaw =
         getClaimString(payload, "http://schemas.microsoft.com/ws/2008/06/identity/claims/role") ?? "Student";
 
-    const role = (roleRaw === "Admin" || roleRaw === "Teacher" || roleRaw === "Student"
-        ? roleRaw
+    const normalizedRole =
+        roleRaw === "Student Affairs" || roleRaw === "StudentAffairs" ? "Staff" : roleRaw;
+
+    const role = (normalizedRole === "Admin" ||
+        normalizedRole === "Teacher" ||
+        normalizedRole === "Student" ||
+        normalizedRole === "Staff"
+        ? normalizedRole
         : "Student") as MeResponse["role"];
     const userId = Number(userIdRaw ?? "0");
 
@@ -109,17 +115,39 @@ async function login(payload: LoginPayload): Promise<LoginResponse> {
         throw new Error("Invalid username or password");
     }
 
-    const data: LoginResponse = await response.json();
+    const raw = (await response.json()) as {
+        accessToken: string;
+        refreshToken?: string;
+        role: string;
+    };
 
     // Store tokens
-    if (data.accessToken) {
-        tokenStorage.setAccessToken(data.accessToken);
-    }
-    if (data.refreshToken) {
-        tokenStorage.setRefreshToken(data.refreshToken);
+    if (!raw.accessToken || !raw.refreshToken) {
+        tokenStorage.clearAll();
+        throw new Error("Login response is incomplete. Missing tokens.");
     }
 
-    return data;
+    if (raw.accessToken) {
+        tokenStorage.setAccessToken(raw.accessToken);
+    }
+    if (raw.refreshToken) {
+        tokenStorage.setRefreshToken(raw.refreshToken);
+    }
+
+    const normalizedRole =
+        raw.role === "Student Affairs" || raw.role === "StudentAffairs" ? "Staff" : raw.role;
+
+    return {
+        accessToken: raw.accessToken,
+        refreshToken: raw.refreshToken,
+        role:
+            normalizedRole === "Admin" ||
+            normalizedRole === "Teacher" ||
+            normalizedRole === "Student" ||
+            normalizedRole === "Staff"
+                ? normalizedRole
+                : "Student",
+    };
 }
 
 /**
@@ -172,7 +200,26 @@ async function getMe(): Promise<MeResponse> {
         throw new Error("Unauthenticated");
     }
 
-    return response.json();
+    const raw = (await response.json()) as {
+        userId: number;
+        role: string;
+        username?: string;
+    };
+
+    const normalizedRole =
+        raw.role === "Student Affairs" || raw.role === "StudentAffairs" ? "Staff" : raw.role;
+
+    return {
+        userId: raw.userId,
+        username: raw.username ?? "User",
+        role:
+            normalizedRole === "Admin" ||
+            normalizedRole === "Teacher" ||
+            normalizedRole === "Student" ||
+            normalizedRole === "Staff"
+                ? normalizedRole
+                : "Student",
+    };
 }
 
 /**
@@ -182,7 +229,7 @@ async function refreshAccessToken(): Promise<void> {
     const refreshToken = tokenStorage.getRefreshToken();
     
     if (!refreshToken) {
-        throw new Error("No refresh token available");
+        throw new Error("Session expired. Please sign in again.");
     }
 
     const response = await fetch(`${API_BASE_URL}/Auth/refresh`, {

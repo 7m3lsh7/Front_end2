@@ -158,7 +158,7 @@ Authorization: Bearer <accessToken>
 
 ## 👨‍🏫 Teachers Endpoints
 
-### 5. GET `/api/teachers`
+### 5. GET `/api/Teachers`
 
 **Purpose:** Get list of all teachers
 
@@ -190,7 +190,7 @@ Authorization: Bearer <accessToken>
 
 ---
 
-### 6. POST `/api/teachers`
+### 6. POST `/api/Teachers`
 
 **Purpose:** Create a new teacher
 
@@ -207,9 +207,8 @@ Authorization: Bearer <accessToken>
   "hireDate": "2024-01-01T00:00:00.000Z",
   "department": "string",
   "qualifications": "string",
-  "username": "string",
   "email": "string",
-  "role": "Teacher",
+  "role": "string",
   "phone": "string",
   "fullName": {
     "firstName": "string",
@@ -243,7 +242,7 @@ Authorization: Bearer <accessToken>
 
 ## 📚 Subjects Endpoints
 
-### 7. GET `/api/subjects?year={yearName}`
+### 7. GET `/api/Subjects?year={year}`
 
 **Purpose:** Get list of subjects for a specific academic year
 
@@ -282,7 +281,7 @@ Authorization: Bearer <accessToken>
 
 ---
 
-### 8. POST `/api/subjects`
+### 8. POST `/api/Subjects`
 
 **Purpose:** Create a new subject
 
@@ -297,8 +296,7 @@ Authorization: Bearer <accessToken>
 ```json
 {
   "subjectName": "string",
-  "yearName": "string",
-  "type": "academic" | "competency"
+  "stage": "string"
 }
 ```
 
@@ -326,7 +324,7 @@ Authorization: Bearer <accessToken>
 
 ## 🏫 Classes Endpoints
 
-### 9. GET `/api/classes?yearId={yearId}`
+### 9. GET `/api/Classes?yearId={yearId}`
 
 **Purpose:** Get list of classes for a specific academic year
 
@@ -366,7 +364,7 @@ Authorization: Bearer <accessToken>
 
 ## 👨‍🏫📚 Teacher Assignments Endpoints
 
-### 10. POST `/api/teacher-assignments`
+### 10. POST `/api/TeacherAssignments`
 
 **Purpose:** Assign a teacher to a subject in specific classes
 
@@ -411,6 +409,78 @@ Authorization: Bearer <accessToken>
 **Notes:**
 - `classIds` must be a non-empty array
 - Must verify existence of teacher, subject, and classes before assignment
+
+---
+
+### 10.1 GET `/api/TeacherAssignments/MyDashboard`
+
+**Purpose:** Return the authenticated teacher's assigned academic years and classes for the `/teacher` dashboard.
+
+**Authentication:** Required (JWT Bearer token - Teacher role)
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Request Body:** None
+
+**Response (Success - 200):**
+```json
+[
+  {
+    "yearId": "2024-2025",
+    "classes": [
+      { "classId": 1, "className": "J1" },
+      { "classId": 2, "className": "J2" }
+    ]
+  },
+  {
+    "yearId": "2026-2027",
+    "classes": [
+      { "classId": 9, "className": "S1" }
+    ]
+  }
+]
+```
+
+**Response (Error - 401):**
+```json
+{
+  "message": "Unauthenticated"
+}
+```
+
+**Notes:**
+- Must return only years/classes assigned to the logged-in teacher.
+- This endpoint is now wired in frontend and is the primary data source for `/teacher`.
+
+---
+
+### 10.2 GET `/api/TeacherAssignments/MyClasses?yearId={yearId}`
+
+**Purpose:** Return teacher classes for one academic year (optional optimization for `/teacher/classes` page).
+
+**Authentication:** Required (JWT Bearer token - Teacher role)
+
+**Headers:**
+```
+Authorization: Bearer <accessToken>
+```
+
+**Query Parameters:**
+- `yearId` (required): Academic year ID, e.g. `2024-2025`
+
+**Response (Success - 200):**
+```json
+[
+  { "classId": 1, "className": "J1" },
+  { "classId": 2, "className": "J2" }
+]
+```
+
+**Notes:**
+- If implemented, frontend can switch from generic `/api/Classes` to this endpoint for strict teacher-scoped classes.
 
 ---
 
@@ -481,14 +551,13 @@ import { api } from "@/services/api"; // or use secureFetch
 // Get all teachers - Authorization header added automatically
 const teachers = await TeachersAPI.getAll();
 // Or using axios directly:
-const teachers = await api.get("/teachers");
+const teachers = await api.get("/Teachers");
 
 // Create teacher - Authorization header added automatically
 const newTeacher = await TeachersAPI.create({
   hireDate: new Date().toISOString(),
   department: "General",
   qualifications: "PhD in Mathematics",
-  username: "teacher@example.com",
   email: "teacher@example.com",
   role: "Teacher",
   phone: "1234567890",
@@ -499,7 +568,7 @@ const newTeacher = await TeachersAPI.create({
   }
 });
 // Or using axios directly:
-const newTeacher = await api.post("/teachers", { ... });
+const newTeacher = await api.post("/Teachers", { ... });
 ```
 
 #### Subjects
@@ -510,15 +579,14 @@ import { api } from "@/services/api";
 // Get subjects by year - Authorization header added automatically
 const subjects = await SubjectsAPI.getByYear("2024-2025");
 // Or using axios directly:
-const subjects = await api.get("/subjects", { 
+const subjects = await api.get("/Subjects", { 
   params: { year: "2024-2025" } 
 });
 
 // Create subject - Authorization header added automatically
 const newSubject = await SubjectsAPI.create({
   subjectName: "Mathematics",
-  yearName: "2024-2025",
-  type: "academic"
+  stage: "2024-2025"
 });
 ```
 
@@ -530,7 +598,7 @@ import { api } from "@/services/api";
 // Get classes by year - Authorization header added automatically
 const classes = await ClassesAPI.getByYear("2024-2025");
 // Or using axios directly:
-const classes = await api.get("/classes", { 
+const classes = await api.get("/Classes", { 
   params: { yearId: "2024-2025" } 
 });
 ```
@@ -548,7 +616,7 @@ await TeacherAssignmentsAPI.create({
   classIds: [1, 2, 3]
 });
 // Or using axios directly:
-await api.post("/teacher-assignments", {
+await api.post("/TeacherAssignments", {
   teacherId: "teacher-id-123",
   yearId: "2024-2025",
   subjectId: "subject-id-456",
@@ -569,7 +637,7 @@ The frontend automatically handles token refresh:
 // 5. All pending requests are queued during refresh
 
 // This happens transparently - no manual handling needed!
-const data = await api.get("/teachers"); // Token refresh handled automatically
+const data = await api.get("/Teachers"); // Token refresh handled automatically
 ```
 
 
@@ -578,7 +646,7 @@ const data = await api.get("/teachers"); // Token refresh handled automatically
 
 ### Scope
 The following endpoints are specific to vice workflows.  
-Core entities (`teachers`, `subjects`, `classes`, `teacher-assignments`) are already documented above and must be reused (no duplicate APIs).
+Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are already documented above and must be reused (no duplicate APIs).
 
 ### 11. GET `/api/vice/dashboard/cards`
 **Purpose:** Get dynamic cards for `/vice` dashboard.
@@ -693,12 +761,14 @@ Core entities (`teachers`, `subjects`, `classes`, `teacher-assignments`) are alr
 | `/api/auth/refresh` | POST | ❌ | Refresh access token |
 | `/api/auth/me` | GET | ✅ | Current user information |
 | `/api/auth/logout` | POST | ❌ | User logout (invalidates refresh token) |
-| `/api/teachers` | GET | ✅ | List of teachers |
-| `/api/teachers` | POST | ✅ | Create new teacher |
-| `/api/subjects` | GET | ✅ | List of subjects (by year) |
-| `/api/subjects` | POST | ✅ | Create new subject |
-| `/api/classes` | GET | ✅ | List of classes (by year) |
-| `/api/teacher-assignments` | POST | ✅ | Assign teacher to subject and classes |
+| `/api/Teachers` | GET | ✅ | List of teachers |
+| `/api/Teachers` | POST | ✅ | Create new teacher |
+| `/api/Subjects` | GET | ✅ | List of subjects (by year) |
+| `/api/Subjects` | POST | ✅ | Create new subject |
+| `/api/Classes` | GET | ✅ | List of classes (by year) |
+| `/api/TeacherAssignments` | POST | ✅ | Assign teacher to subject and classes |
+| `/api/TeacherAssignments/MyDashboard` | GET | ✅ | Logged-in teacher years + classes |
+| `/api/TeacherAssignments/MyClasses` | GET | ✅ | Logged-in teacher classes by year |
 | `/api/vice/dashboard/cards` | GET | ✅ | Vice dashboard cards |
 | `/api/vice/students` | GET | ✅ | List students with filters |
 | `/api/vice/students` | POST | ✅ | Create student |
@@ -739,4 +809,4 @@ Core entities (`teachers`, `subjects`, `classes`, `teacher-assignments`) are alr
 
 ---
 
-**Last Updated:** 2026-04-17
+**Last Updated:** 2026-04-18

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, IconButton } from '@mui/material';
+import { Alert, Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, IconButton } from '@mui/material';
 import SchoolIcon from '@mui/icons-material/School';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useParams } from 'next/navigation';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 export default function QuarterGradesDashboard() {
     const params = useParams();
-    // Default to the URL param (e.g., 'junior') or fallback
+    // Default to URL param when available
     const level = typeof params?.level === 'string' ? params.level : 'junior';
     const subject = typeof params?.subject === 'string' ? decodeURIComponent(params.subject) : 'Subject';
 
@@ -17,11 +17,7 @@ export default function QuarterGradesDashboard() {
     const [departmentFilter, setDepartmentFilter] = useState('om');
     const [classFilter, setClassFilter] = useState('class1');
 
-    // Mock Data for the table
-    const students = [
-        { id: '1', name: 'Ahmed Al-Mansouri', q1: 61, q2: 61, q3: 61, q4: 61 },
-        // Add more mock data as needed
-    ];
+    const students: Array<{ id: string; name: string; q1: number; q2: number; q3: number; q4: number }> = [];
 
     return (
         <Box sx={{ position: 'relative', minHeight: '100vh', backgroundColor: '#000' }}>
@@ -126,6 +122,9 @@ export default function QuarterGradesDashboard() {
                                     </Stack>
 
                                     {/* Table */}
+                                    <Alert severity="warning">
+                                        Quarter grades endpoint is not integrated yet. No mock data is displayed.
+                                    </Alert>
                                     <TableContainer component={Paper} elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', mt: 4 }}>
                                         <Table>
                                             <TableHead sx={{ backgroundColor: '#ffc107' }}>

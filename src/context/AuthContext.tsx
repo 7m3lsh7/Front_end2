@@ -25,7 +25,7 @@ import React, {
 import { authService } from "@/services/auth.service";
 
 
-export type UserRole = "Admin" | "Teacher" | "Student";
+export type UserRole = "Admin" | "Teacher" | "Student" | "Staff";
 
 export interface AuthUser {
     userId: number;

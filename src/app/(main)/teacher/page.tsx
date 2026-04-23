@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-
-export default function TeacherPage() {
-    return (
-        <div>
-            <h1>Teacher Dashboard</h1>
-        </div>
-    );
-}
-=======
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -15,16 +5,28 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 import DashboardHeader from "@/components/shared/DashboardHeader-bg";
 import SharedCard from "@/components/shared/SharedCard";
 import { useStudentYear } from "@/context/StudentYearContext";
-import { mapTeacherCardsToSharedCards } from "@/mappers/TeacherCards.mapper";
 import { teacherService } from "@/services/teacher.service";
-import { teacherCardsFallback } from "@/data/Teacher/TeacherCard";
 import { CardData } from "@/types/SharedCard";
-import type { TeacherSubject } from "@/types/Teacher-api/teacher-api";
+import JuniorIcon from "@/icons/1.svg";
+import WheelerIcon from "@/icons/2.svg";
+import SeniorIcon from "@/icons/3.svg";
 
 const YEAR_LABELS: Record<string, string> = {
   junior: "Junior",
   wheeler: "Wheeler",
   senior: "Senior",
+};
+
+const ACADEMIC_YEAR_LABELS: Record<string, string> = {
+  "2024-2025": "Junior",
+  "2025-2026": "Wheeler",
+  "2026-2027": "Senior",
+};
+
+const getYearIcon = (yearId: string): CardData["icon"] => {
+  if (yearId === "2025-2026") return WheelerIcon;
+  if (yearId === "2026-2027") return SeniorIcon;
+  return JuniorIcon;
 };
 
 export default function TeacherDashboard() {
@@ -45,23 +47,39 @@ export default function TeacherDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const [subjectsRes, profileRes] = await Promise.allSettled([
-          teacherService.getTeacherSubjects(),
+        const [dashboardRes, profileRes] = await Promise.allSettled([
+          teacherService.getTeacherDashboardYears(),
           teacherService.getTeacherProfile(),
         ]);
 
         if (cancelled) return;
 
-        const subjectsData: TeacherSubject[] =
-          subjectsRes.status === "fulfilled" && subjectsRes.value?.length
-            ? subjectsRes.value
-            : teacherCardsFallback;
-        setCards(mapTeacherCardsToSharedCards(subjectsData));
+        if (dashboardRes.status === "fulfilled") {
+          const teacherCards: CardData[] = dashboardRes.value.map((yearBlock) => ({
+            id: yearBlock.yearId,
+            title: ACADEMIC_YEAR_LABELS[yearBlock.yearId] ?? yearBlock.yearId,
+            description: yearBlock.classes.length
+              ? yearBlock.classes.map((cls) => cls.className).join(" - ")
+              : "No classes assigned yet.",
+            href: `/teacher/classes?year=${encodeURIComponent(yearBlock.yearId)}`,
+            icon: getYearIcon(yearBlock.yearId),
+          }));
+          setCards(teacherCards);
+        } else {
+          setCards([]);
+          setError(
+            dashboardRes.reason instanceof Error
+              ? dashboardRes.reason.message
+              : "Failed to load assigned academic years."
+          );
+        }
 
         if (profileRes.status === "fulfilled" && profileRes.value) {
           setProfile({
             name: profileRes.value.name ?? "Teacher",
-            year: profileRes.value.subtitle ?? "",
+            year: profileRes.value.currentAcademicYear
+              ? YEAR_LABELS[profileRes.value.currentAcademicYear]
+              : "",
             subtitle: "Manage your subjects and classes",
           });
           if (profileRes.value.currentAcademicYear) {
@@ -71,7 +89,7 @@ export default function TeacherDashboard() {
       } catch (e: unknown) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Something went wrong");
-          setCards(mapTeacherCardsToSharedCards(teacherCardsFallback));
+          setCards([]);
         }
       }
       if (!cancelled) setLoading(false);
@@ -131,7 +149,12 @@ export default function TeacherDashboard() {
                 <>
                   {error && (
                     <Typography color="warning.main" sx={{ mb: 1 }}>
-                      {error} — showing default subjects.
+                      {error}
+                    </Typography>
+                  )}
+                  {!error && cards.length === 0 && (
+                    <Typography color="text.secondary" sx={{ mb: 1 }}>
+                      No academic years assigned to your account yet.
                     </Typography>
                   )}
                   <Box
@@ -156,4 +179,3 @@ export default function TeacherDashboard() {
   );
 }
              
->>>>>>> a4e0ea5a8280e355608569163c10e2a29430e494

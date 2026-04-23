@@ -3,7 +3,7 @@ import { Teacher, CreateTeacherPayload } from "@/types/teacher.types";
 
 export const TeachersAPI = {
   getAll(): Promise<Teacher[]> {
-    return secureFetch(`${API_BASE_URL}/teachers`);
+    return secureFetch(`${API_BASE_URL}/teachers`) as Promise<Teacher[]>;
   },
 
   create(payload: CreateTeacherPayload) {

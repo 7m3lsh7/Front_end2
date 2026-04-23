@@ -21,6 +21,13 @@ import {
   Radio,
   Alert,
   CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -39,6 +46,7 @@ export default function ViceTeachersPage() {
 
   const [openAddSubject, setOpenAddSubject] = useState(false);
   const [openAddTeacher, setOpenAddTeacher] = useState(false);
+  const [openTeachersList, setOpenTeachersList] = useState(false);
 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -51,6 +59,15 @@ export default function ViceTeachersPage() {
   const [isSavingTeacher, setIsSavingTeacher] = useState(false);
   const [teacherError, setTeacherError] = useState<string | null>(null);
   const [teacherSuccess, setTeacherSuccess] = useState(false);
+  const [pendingTeacherDraft, setPendingTeacherDraft] = useState<{
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    qualifications: string;
+    department: string;
+  } | null>(null);
 
   // Loading and error states for data fetching
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
@@ -70,12 +87,13 @@ export default function ViceTeachersPage() {
     email: "",
     phone: "",
     qualifications: "",
+    department: "",
   });
 
   /* ===================== ADD SUBJECT FORM ===================== */
   const [subjectName, setSubjectName] = useState("");
   const [subjectType, setSubjectType] = useState<"academic" | "competency">(
-    "academic",
+    "academic"
   );
 
   /* ===================== FETCH DATA ===================== */
@@ -98,6 +116,23 @@ export default function ViceTeachersPage() {
         setIsLoadingTeachers(false);
       });
   }, []);
+
+  const loadTeachers = async () => {
+    setIsLoadingTeachers(true);
+    setFetchError(null);
+    try {
+      const data = await TeachersAPI.getAll();
+      setTeachers(data);
+    } catch (error) {
+      setFetchError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load teachers. Please try again."
+      );
+    } finally {
+      setIsLoadingTeachers(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedYear) {
@@ -154,7 +189,7 @@ export default function ViceTeachersPage() {
   
   const handleAssignTeacher = async () => {
     // Validation
-    if (!selectedTeacherId || !selectedYear || !selectedSubjectId || selectedClassIds.length === 0) {
+    if ((!selectedTeacherId && !pendingTeacherDraft) || !selectedYear || !selectedSubjectId || selectedClassIds.length === 0) {
       setAssignmentError("Please fill in all required fields");
       return;
     }
@@ -164,11 +199,46 @@ export default function ViceTeachersPage() {
     setIsAssigningTeacher(true);
 
     try {
+      let teacherIdToAssign = selectedTeacherId;
+
+      // If no existing teacher selected, create from draft now (final step).
+      if (!teacherIdToAssign && pendingTeacherDraft) {
+        const createdTeacher = (await TeachersAPI.create({
+          hireDate: new Date().toISOString(),
+          department: pendingTeacherDraft.department,
+          qualifications: pendingTeacherDraft.qualifications,
+          email: pendingTeacherDraft.email,
+          role: "Teacher",
+          phone: pendingTeacherDraft.phone,
+          fullName: {
+            firstName: pendingTeacherDraft.firstName,
+            middleName: pendingTeacherDraft.middleName,
+            lastName: pendingTeacherDraft.lastName,
+          },
+        })) as Teacher;
+
+        teacherIdToAssign = createdTeacher.id;
+        setPendingTeacherDraft(null);
+        await loadTeachers();
+      }
+
+      if (!teacherIdToAssign) {
+        throw new Error("Teacher is not selected");
+      }
+
+      const normalizedClassIds = selectedClassIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0);
+
+      if (normalizedClassIds.length === 0) {
+        throw new Error("Please select at least one valid class");
+      }
+
       await TeacherAssignmentsAPI.create({
-        teacherId: selectedTeacherId,
-        yearId: selectedYear,
-        subjectId: selectedSubjectId,
-        classIds: selectedClassIds,
+        teacherId: String(teacherIdToAssign).trim(),
+        yearId: String(selectedYear).trim(),
+        subjectId: String(selectedSubjectId).trim(),
+        classIds: normalizedClassIds,
       });
 
       setAssignmentSuccess(true);
@@ -215,6 +285,10 @@ export default function ViceTeachersPage() {
       setTeacherError("Phone is required");
       return;
     }
+    if (!teacherForm.department.trim()) {
+      setTeacherError("Department is required");
+      return;
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -236,7 +310,6 @@ export default function ViceTeachersPage() {
     }
 
     setIsSavingTeacher(true);
-
     try {
       // Sanitize inputs before sending
       const sanitizeInput = (input: string) => {
@@ -246,28 +319,21 @@ export default function ViceTeachersPage() {
           .substring(0, 255); // Limit length
       };
 
-      // Call API to create teacher (with authentication via secureFetch)
-      await TeachersAPI.create({
-        hireDate: new Date().toISOString(),
-        department: "General",
-        qualifications: sanitizeInput(teacherForm.qualifications),
-        username: teacherForm.email.trim().toLowerCase(),
+      // Save as local draft only; creation happens at final assign step.
+      setPendingTeacherDraft({
+        firstName: sanitizeInput(teacherForm.firstName),
+        middleName: teacherForm.middleName
+          ? sanitizeInput(teacherForm.middleName)
+          : undefined,
+        lastName: sanitizeInput(teacherForm.lastName),
         email: teacherForm.email.trim().toLowerCase(),
-        role: "Teacher",
         phone: cleanPhone,
-        fullName: {
-          firstName: sanitizeInput(teacherForm.firstName),
-          middleName: teacherForm.middleName
-            ? sanitizeInput(teacherForm.middleName)
-            : undefined,
-          lastName: sanitizeInput(teacherForm.lastName),
-        },
+        qualifications: sanitizeInput(teacherForm.qualifications),
+        department: sanitizeInput(teacherForm.department),
       });
 
-      // Success - refresh teachers list and reset form
+      // Success - reset form and continue to assignment steps
       setTeacherSuccess(true);
-      const updatedTeachers = await TeachersAPI.getAll();
-      setTeachers(updatedTeachers);
 
       // Reset form
       setTeacherForm({
@@ -277,6 +343,7 @@ export default function ViceTeachersPage() {
         email: "",
         phone: "",
         qualifications: "",
+        department: "",
       });
 
       // Close modal after a short delay to show success message
@@ -300,16 +367,34 @@ export default function ViceTeachersPage() {
 
   const handleSaveSubject = async () => {
     try {
+      if (!subjectName.trim()) {
+        setFetchError("Subject name is required");
+        return;
+      }
+      if (!selectedYear.trim()) {
+        setFetchError("Select academic year/stage first");
+        return;
+      }
+      // Backend swagger does not accept "type"; encode category in subject name.
+      const normalizedSubjectName =
+        subjectType === "competency"
+          ? `${subjectName.trim()} (Jadarat)`
+          : subjectName.trim();
+
       await SubjectsAPI.create({
-        subjectName,
-        yearName: selectedYear,
-        type: subjectType,
+        subjectName: normalizedSubjectName,
+        stage: selectedYear,
       });
 
       setOpenAddSubject(false);
+      setSubjectName("");
+      setSubjectType("academic");
       setSubjects(await SubjectsAPI.getByYear(selectedYear));
     } catch (error) {
       console.error("Failed to create subject:", error);
+      setFetchError(
+        error instanceof Error ? error.message : "Failed to create subject."
+      );
     }
   };
 
@@ -323,6 +408,7 @@ export default function ViceTeachersPage() {
       email: "",
       phone: "",
       qualifications: "",
+      department: "",
     });
     setTeacherError(null);
     setTeacherSuccess(false);
@@ -356,6 +442,7 @@ export default function ViceTeachersPage() {
             </Typography>
             <Button
               variant="contained"
+              onClick={() => setOpenTeachersList(true)}
               sx={{
                 backgroundColor: "#ffc107",
                 color: "#000",
@@ -441,6 +528,11 @@ export default function ViceTeachersPage() {
                       Add New Teacher
                     </Button>
                   </Box>
+                  {pendingTeacherDraft && (
+                    <Alert severity="info">
+                      New teacher draft saved. Complete year/subject/classes then click <b>Assign Teacher</b> to create and assign.
+                    </Alert>
+                  )}
                 </Stack>
               </Card>
 
@@ -479,6 +571,8 @@ export default function ViceTeachersPage() {
                         onChange={(e) => setSelectedYear(e.target.value)}
                       >
                         <MenuItem value="2024-2025">2024-2025</MenuItem>
+                        <MenuItem value="2025-2026">2025-2026</MenuItem>
+                        <MenuItem value="2026-2027">2026-2027</MenuItem>
                       </Select>
                     </FormControl>
 
@@ -609,7 +703,7 @@ export default function ViceTeachersPage() {
               variant="contained"
               size="large"
               disabled={
-                !selectedTeacherId ||
+                (!selectedTeacherId && !pendingTeacherDraft) ||
                 !selectedSubjectId ||
                 selectedClassIds.length === 0 ||
                 isAssigningTeacher
@@ -627,10 +721,10 @@ export default function ViceTeachersPage() {
               {isAssigningTeacher ? (
                 <>
                   <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Assigning...
+                  Processing...
                 </>
               ) : (
-                "Assign Teacher"
+                "Create & Assign Teacher"
               )}
             </Button>
           </Box>
@@ -731,6 +825,19 @@ export default function ViceTeachersPage() {
                 rows={3}
                 fullWidth
               />
+              <TextField
+                label="Department"
+                placeholder="Department (must match backend)"
+                value={teacherForm.department}
+                onChange={(e) =>
+                  setTeacherForm({
+                    ...teacherForm,
+                    department: e.target.value,
+                  })
+                }
+                required
+                fullWidth
+              />
 
               <Button
                 variant="contained"
@@ -776,6 +883,10 @@ export default function ViceTeachersPage() {
                 onChange={(e) => setSubjectName(e.target.value)}
               />
 
+              <Alert severity="info">
+                Subject will be created for stage/year: <b>{selectedYear || "Not selected"}</b>
+              </Alert>
+
               <RadioGroup
                 value={subjectType}
                 onChange={(e) =>
@@ -801,6 +912,43 @@ export default function ViceTeachersPage() {
           </DialogContent>
         </Dialog>
       </Container>
+
+      <Dialog open={openTeachersList} onClose={() => setOpenTeachersList(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Teachers List
+          <IconButton onClick={() => setOpenTeachersList(false)} sx={{ float: "right" }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Button variant="outlined" onClick={loadTeachers} sx={{ mb: 2 }}>
+            Refresh
+          </Button>
+          <TableContainer component={Paper}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>ID</TableCell>
+                  <TableCell>Name</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {teachers.map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell>{t.id}</TableCell>
+                    <TableCell>{t.fullName}</TableCell>
+                  </TableRow>
+                ))}
+                {teachers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={2}>No teachers available</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

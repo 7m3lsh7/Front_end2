@@ -17,7 +17,6 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useStudentYear } from "@/context/StudentYearContext";
-import { quarterGradesFallback } from "@/data/Student/gradesFallback";
 import { studentService } from "@/services/student.service";
 import { calculateAverageGrade } from "@/utils/grades";
 import type { QuarterGradeRow } from "@/types/Student-api/grades";
@@ -44,12 +43,12 @@ export default function QuarterGradesPage() {
       try {
         const res = await studentService.getQuarterGrades(displayYear);
         if (!cancelled) {
-          setGrades(res.grades?.length ? res.grades : quarterGradesFallback);
+          setGrades(res.grades ?? []);
         }
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load grades");
-          setGrades(quarterGradesFallback);
+          setGrades([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -144,7 +143,7 @@ export default function QuarterGradesPage() {
 
       {error && (
         <Typography color="warning.main" sx={{ mb: 1 }}>
-          {error} — showing default data.
+          {error}
         </Typography>
       )}
 

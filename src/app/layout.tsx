@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import theme from "@/styles/theme";
 import { AuthProvider } from '../context/AuthContext';
 import { StudentYearProvider } from '../context/StudentYearContext';
+import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
 const queryClient = new QueryClient();
 
 export default function RootLayout({
@@ -15,17 +16,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <LanguageProvider>
+      <RootHtml>{children}</RootHtml>
+    </LanguageProvider>
+  );
+}
+
+function RootHtml({ children }: { children: React.ReactNode }) {
+  const { language, dir } = useLanguage();
+  return (
+    <html lang={language} dir={dir}>
+      <body dir={dir}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-            <QueryClientProvider client={queryClient}>
-              <AuthProvider>
-                <StudentYearProvider>
-                  {children}
-                </StudentYearProvider>
-              </AuthProvider>
-            </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <StudentYearProvider>{children}</StudentYearProvider>
+            </AuthProvider>
+          </QueryClientProvider>
         </ThemeProvider>
       </body>
     </html>

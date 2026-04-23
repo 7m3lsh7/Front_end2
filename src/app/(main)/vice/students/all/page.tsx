@@ -1,18 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Paper } from '@mui/material';
+import { Alert, Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Paper } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SchoolIcon from '@mui/icons-material/School'; // Placeholder icon if needed
 
 export default function AllStudentsPage() {
-    // Mock Data
-    const students = [
-        { id: '2025525', name: 'Omar El-Sayed', department: 'OM', class: 'W3' },
-        { id: '2025025', name: 'Felo Remon', department: 'SD', class: 'S5' },
-        // Add more mock data if needed to demonstrate the list
-    ];
+    const students: Array<{ id: string; name: string; department: string; class: string }> = [];
 
     const [departmentFilter, setDepartmentFilter] = useState('om');
     const [levelFilter, setLevelFilter] = useState('junior');
@@ -102,6 +97,9 @@ export default function AllStudentsPage() {
                                 </Box>
 
                                 {/* Table */}
+                                <Alert severity="warning">
+                                    Students list endpoint is not integrated yet. No mock data is shown in production mode.
+                                </Alert>
                                 <TableContainer component={Paper} elevation={0} sx={{ border: 'none', borderRadius: '12px', overflow: 'hidden' }}>
                                     <Table>
                                         <TableHead sx={{ backgroundColor: '#ffc107' }}>
