@@ -24,7 +24,7 @@ export function getRedirectPathByRole(role: UserRole): string {
         case "Student":
             return "/student";
 
-        case "Staff":
+        case "StudentAffairs":
             return "/vice";
 
         default:

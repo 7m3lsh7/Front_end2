@@ -29,12 +29,12 @@ export interface LoginPayload {
 export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
-    role: "Admin" | "Teacher" | "Student" | "Staff";
+    role: "Admin" | "Teacher" | "Student" | "StudentAffairs";
 }
 
 export interface MeResponse {
     userId: number;
-    role: "Admin" | "Teacher" | "Student" | "Staff";
+    role: "Admin" | "Teacher" | "Student" | "StudentAffairs";
     username: string;
 }
 
@@ -82,12 +82,12 @@ function parseUserFromToken(accessToken: string): MeResponse | null {
         getClaimString(payload, "http://schemas.microsoft.com/ws/2008/06/identity/claims/role") ?? "Student";
 
     const normalizedRole =
-        roleRaw === "Student Affairs" || roleRaw === "StudentAffairs" ? "Staff" : roleRaw;
+        roleRaw === "Student Affairs" || roleRaw === "StudentAffairs" ? "StudentAffairs" : roleRaw;
 
     const role = (normalizedRole === "Admin" ||
         normalizedRole === "Teacher" ||
         normalizedRole === "Student" ||
-        normalizedRole === "Staff"
+        normalizedRole === "StudentAffairs"
         ? normalizedRole
         : "Student") as MeResponse["role"];
     const userId = Number(userIdRaw ?? "0");
@@ -135,7 +135,7 @@ async function login(payload: LoginPayload): Promise<LoginResponse> {
     }
 
     const normalizedRole =
-        raw.role === "Student Affairs" || raw.role === "StudentAffairs" ? "Staff" : raw.role;
+        raw.role === "Student Affairs" || raw.role === "StudentAffairs" ? "StudentAffairs" : raw.role;
 
     return {
         accessToken: raw.accessToken,
@@ -144,7 +144,7 @@ async function login(payload: LoginPayload): Promise<LoginResponse> {
             normalizedRole === "Admin" ||
             normalizedRole === "Teacher" ||
             normalizedRole === "Student" ||
-            normalizedRole === "Staff"
+            normalizedRole === "StudentAffairs"
                 ? normalizedRole
                 : "Student",
     };
@@ -207,7 +207,7 @@ async function getMe(): Promise<MeResponse> {
     };
 
     const normalizedRole =
-        raw.role === "Student Affairs" || raw.role === "StudentAffairs" ? "Staff" : raw.role;
+        raw.role === "Student Affairs" || raw.role === "StudentAffairs" ? "StudentAffairs" : raw.role;
 
     return {
         userId: raw.userId,
@@ -216,7 +216,7 @@ async function getMe(): Promise<MeResponse> {
             normalizedRole === "Admin" ||
             normalizedRole === "Teacher" ||
             normalizedRole === "Student" ||
-            normalizedRole === "Staff"
+            normalizedRole === "StudentAffairs"
                 ? normalizedRole
                 : "Student",
     };
