@@ -88,7 +88,6 @@ const SharedCard: React.FC<SharedCardProps> = ({
           </Box>
         </Box>
       </Card>
-
   );
 };
 

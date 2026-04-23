@@ -12,7 +12,7 @@ export function mapStudentCardsToSharedCards(
     description: item.description,
     href: item.route,
     icon:
-      item.title === "Teacher"
+      item.title === "Quarter Grades"
         ? BookIcon
         : fileIcon,
   }));

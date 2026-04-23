@@ -341,7 +341,300 @@ interface JadaratGradeRow {
   Your_Attemps: string;
   Attemps: string;
 }
+
+// Teacher subjects
+interface TeacherSubject {
+  id: number;
+  title: string;
+  subjectName: string;
+  year: "junior" | "wheeler" | "senior";
+  route?: string;
+}
+
+// Teacher profile
+interface TeacherProfileResponse {
+  name: string;
+  subtitle?: string;
+  currentAcademicYear?: "junior" | "wheeler" | "senior";
+}
+
+// Teacher classes
+interface TeacherClassesResponse {
+  classes: TeacherClass[];
+  year: string;
+  subjectName: string;
+}
+
+interface TeacherClass {
+  id: number | string;
+  className: string;
+  studentCount?: number;
+  lastModified?: string;
+}
 ```
+
+---
+
+## Teacher Role Endpoints
+
+All endpoints below require an authenticated user with **role: Teacher**. Use the same session cookie as above.
+
+---
+
+### 10. GET `/teacher/profile`
+
+Returns the current teacher's profile for the dashboard header (name, subtitle, currentAcademicYear).
+
+| Item | Description |
+|------|-------------|
+| **Request Body** | None |
+| **Response** | JSON object |
+
+**Success Response (200):**
+
+```json
+{
+  "name": "Ahmed Karim",
+  "subtitle": "Mathematics Teacher",
+  "currentAcademicYear": "senior"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Teacher's display name |
+| `subtitle` | string | No | Teacher's subject or title |
+| `currentAcademicYear` | string | No | One of `"junior"` \| `"wheeler"` \| `"senior"`. Default academic year for filtering. |
+
+---
+
+### 11. GET `/teacher/subjects`
+
+Returns the list of subjects taught by the teacher, grouped by academic year.
+
+| Item | Description |
+|------|-------------|
+| **Request Body** | None |
+| **Response** | Array of subject objects (or wrapper) |
+
+**Success Response (200):**
+
+The frontend accepts:
+
+- Raw array: `[{ "id": 1, "title": "Senior", "subjectName": "Mathematics", "year": "senior", ... }, ...]`
+- Wrapped: `{ "subjects": [...] }` or `{ "data": [...] }`
+
+**Example (raw array):**
+
+```json
+[
+  {
+    "id": 1,
+    "title": "Junior",
+    "subjectName": "Mathematics",
+    "year": "junior",
+    "route": "/teacher/classes"
+  },
+  {
+    "id": 2,
+    "title": "Wheeler",
+    "subjectName": "Physics",
+    "year": "wheeler",
+    "route": "/teacher/classes"
+  },
+  {
+    "id": 3,
+    "title": "Senior",
+    "subjectName": "Chemistry",
+    "year": "senior",
+    "route": "/teacher/classes"
+  }
+]
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | number | Unique subject ID |
+| `title` | string | Academic year title (e.g. "Junior", "Wheeler", "Senior") |
+| `subjectName` | string | Name of the subject being taught |
+| `year` | string | Academic year identifier: `"junior"` \| `"wheeler"` \| `"senior"` |
+| `route` | string | Navigation route (optional) |
+
+---
+
+### 12. GET `/teacher/classes?year={year}&subject={subject}`
+
+Returns the list of classes for a given academic year and subject.
+
+In the current front-end workspace this endpoint is implemented as a **mock Next.js API route** under `src/pages/api/teacher/classes.ts`. It uses the same mock data defined in `src/data/Teacher/teacherMockData.ts` so the UI works offline. When a real backend becomes available, simply remove or override the mock route and the service will continue to function without modification.
+
+| Item | Description |
+|------|-------------|
+| **Query** | `year` (required): `junior` \| `wheeler` \| `senior` |
+| | `subject` (optional): Subject ID or name for filtering (ignored by mock) |
+| **Response** | JSON with `classes` array |
+
+**Success Response (200):**
+
+```json
+{
+  "classes": [
+    { "id": 1, "className": "A1", "studentCount": 25, "lastModified": "2024-01-15" },
+    { "id": 2, "className": "A2", "studentCount": 28, "lastModified": "2024-01-14" }
+  ],
+  "year": "senior",
+  "subjectName": "Mathematics"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `classes` | array | List of class objects |
+| `year` | string | Echoed academic year |
+| `subjectName` | string | Name of the subject for these classes |
+
+**Class row:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | number \| string | Unique class ID |
+| `className` | string | Class name or identifier (e.g. "A1", "B2") |
+| `studentCount` | number | Optional: number of students in the class |
+| `lastModified` | string | Optional: last modification date |
+
+If the endpoint fails, the frontend shows an error message with an option to retry.
+
+---
+
+### 13. GET `/teacher/students?classId={classId}`
+
+Returns the list of students in a given class, with their grades and pass/fail status.
+
+| Item | Description |
+|------|-------------|
+| **Query** | `classId` (required): Unique class identifier |
+| **Response** | JSON with `students` array |
+
+**Success Response (200):**
+
+```json
+{
+  "students": [
+    {
+      "id": 1,
+      "name": "Ali Ahmed",
+      "quarterGrade": 18,
+      "teacherGrade": null,
+      "finalGrade": 20,
+      "status": "pass"
+    },
+    {
+      "id": 2,
+      "name": "Sara Mohammed",
+      "quarterGrade": 22,
+      "teacherGrade": null,
+      "finalGrade": 20,
+      "status": "pass"
+    },
+    {
+      "id": 3,
+      "name": "Omar Hassan",
+      "quarterGrade": 15,
+      "teacherGrade": null,
+      "finalGrade": 20,
+      "status": "fail"
+    }
+  ],
+  "classId": 1,
+  "className": "A1"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `students` | array | List of student objects (see below) |
+| `classId` | string \| number | Echo of requested class ID |
+| `className` | string | Optional: class name (e.g. "A1") |
+
+**Student row:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | number \| string | Yes | Unique student ID |
+| `name` | string | Yes | Student's full name |
+| `quarterGrade` | number | No | Quarter grade from previous assessment |
+| `teacherGrade` | number | No | Teacher's grade input (null if not yet submitted) |
+| `finalGrade` | number | No | Final grade set by admin (passing threshold) |
+| `status` | string | No | `"pass"` or `"fail"` based on comparison of `teacherGrade` vs `finalGrade` |
+
+**Notes:**
+- The frontend uses `status` field to show pass/fail chips in the grading table.
+- Pass/fail statistics are calculated from the `status` field.
+- If `finalGrade` is not provided, pass/fail determination should be based on `teacherGrade` >= department threshold.
+
+---
+
+### 14. POST `/teacher/grades`
+
+Submit or update a student's grade for a class.
+
+| Item | Description |
+|------|-------------|
+| **Request Body** | JSON |
+| **Response** | JSON confirmation |
+
+**Request Body:**
+
+```json
+{
+  "classId": 1,
+  "studentId": 3,
+  "grade": 22
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `classId` | number \| string | Yes | Class identifier |
+| `studentId` | number \| string | Yes | Student identifier |
+| `grade` | number | Yes | Grade value (e.g. 0-25) |
+
+**Success Response (200 or 201):**
+
+```json
+{
+  "success": true,
+  "message": "Grade saved successfully",
+  "data": {
+    "classId": 1,
+    "studentId": 3,
+    "grade": 22
+  }
+}
+```
+
+Or minimal response:
+
+```json
+{
+  "ok": true
+}
+```
+
+**Error Response:**
+
+```json
+{
+  "success": false,
+  "message": "Invalid grade value"
+}
+```
+
+**Notes:**
+- Backend should validate grade is a valid number (typically 0-25 or 0-100 depending on system).
+- Backend should update student record and recalculate `status` (pass/fail) if `finalGrade` threshold is available.
+- Frontend does not rely on response body; accepts any 2xx status as success.
+- Endpoint should be protected (require `role: Teacher`).
 
 ---
 
@@ -358,6 +651,11 @@ interface JadaratGradeRow {
 | 7 | GET | `/student/grades/quarter?year=` | Quarter grades for year |
 | 8 | GET | `/student/grades/final?year=` | Final grades for year |
 | 9 | GET | `/student/grades/jadarat?year=` | Jadarat (competencies) grades for year |
+| 10 | GET | `/teacher/profile` | Teacher name, subtitle, currentAcademicYear |
+| 11 | GET | `/teacher/subjects` | List of subjects taught by teacher (grouped by year) |
+| 12 | GET | `/teacher/classes?year=&subject=` | Classes for a subject in a year |
+| 13 | GET | `/teacher/students?classId=` | Students within a class (shows name and quarter grade) |
+| 14 | POST | `/teacher/grades` | Submit a grade for a student (body: classId, studentId, grade) |
 
 ---
 

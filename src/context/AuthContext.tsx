@@ -25,7 +25,7 @@ import React, {
 import { authService } from "@/services/auth.service";
 
 
-export type UserRole = "Admin" | "Teacher" | "Student";
+export type UserRole = "Admin" | "Teacher" | "Student" | "Staff";
 
 export interface AuthUser {
     userId: number;
@@ -68,13 +68,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(true);
 
         try {
-           
+            // Login and get tokens (tokens are stored automatically in authService)
             const loginResponse = await authService.login({
                 username,
                 password,
             });
 
-           
+            // Get user info using the stored token
             const me = await authService.getMe();
 
             setUser(me);

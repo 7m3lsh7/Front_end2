@@ -5,7 +5,6 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 import DashboardHeader from "@/components/shared/DashboardHeader-bg";
 import SharedCard from "@/components/shared/SharedCard";
 import { useStudentYear } from "@/context/StudentYearContext";
-import { studentCardsApi } from "@/data/Student/studentcards";
 import { mapStudentCardsToSharedCards } from "@/mappers/StudentCards.mapper";
 import { studentService } from "@/services/student.service";
 import { CardData } from "@/types/SharedCard";
@@ -38,9 +37,7 @@ export default function StudentDashboard() {
         if (cancelled) return;
 
         const cardsData =
-          cardsRes.status === "fulfilled" && cardsRes.value?.length
-            ? cardsRes.value
-            : studentCardsApi;
+          cardsRes.status === "fulfilled" ? cardsRes.value : [];
         setCards(mapStudentCardsToSharedCards(cardsData));
 
         if (profileRes.status === "fulfilled" && profileRes.value) {
@@ -56,7 +53,7 @@ export default function StudentDashboard() {
       } catch (e: unknown) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Something went wrong");
-          setCards(mapStudentCardsToSharedCards(studentCardsApi));
+          setCards([]);
         }
       }
       if (!cancelled) setLoading(false);
@@ -116,7 +113,12 @@ export default function StudentDashboard() {
                 <>
                   {error && (
                     <Typography color="warning.main" sx={{ mb: 1 }}>
-                      {error} — showing default cards.
+                      {error}
+                    </Typography>
+                  )}
+                  {!error && cards.length === 0 && (
+                    <Typography color="text.secondary" sx={{ mb: 1 }}>
+                      No dashboard cards available for your account yet.
                     </Typography>
                   )}
                   <Box

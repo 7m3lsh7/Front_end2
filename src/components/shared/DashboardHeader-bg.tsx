@@ -4,8 +4,8 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 
 interface DashboardHeaderProps {
-  name: string;
-  year: string;
+  name?: string;
+  year?: string;
   subtitle?: string;
   children?: React.ReactNode;
 }
@@ -32,7 +32,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         maxWidth: "1760px",
         width: "100%",
         mx: "auto",
-
         "&::before": {
           content: '""',
           position: "absolute",
@@ -78,7 +77,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     >
       {/* Header text */}
       <Typography variant="h2" sx={{ color: "white" }}>
-        Welcome, {name}
+        {name}
       </Typography>
 
       <Typography
