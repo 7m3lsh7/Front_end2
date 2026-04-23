@@ -49,7 +49,7 @@ export default function QuarterGradesDashboard() {
                         {/* Main Content Card */}
                         <Card
                             sx={{
-                                backgroundImage: 'url(/images/Frame.png)', // Using Frame.png as per other pages
+                                backgroundImage: 'url(/Images/Frame.png)', // Using Frame.png as per other pages
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 borderRadius: '24px',

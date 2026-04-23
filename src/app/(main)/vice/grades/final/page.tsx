@@ -5,8 +5,9 @@ import { Box, Container, Typography, Stack, Card, CardActionArea, IconButton } f
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function FinalGradesSetupPage() {
+function FinalGradesSetupContent() {
     const levels = [
         { id: 1, name: 'Junior' },
         { id: 2, name: 'Wheeler' },
@@ -14,7 +15,7 @@ export default function FinalGradesSetupPage() {
     ];
 
     const searchParams = useSearchParams();
-    const semester = searchParams.get('semester');
+    const semester = searchParams?.get('semester');
 
     return (
         <Box sx={{ position: 'relative', minHeight: '100vh', backgroundColor: '#000', overflow: 'hidden' }}>
@@ -49,7 +50,7 @@ export default function FinalGradesSetupPage() {
                     {/* Central Card with Frame.png Background */}
                     <Card
                         sx={{
-                            backgroundImage: 'url(/images/Frame.png)',
+                            backgroundImage: 'url(/Images/Frame.png)',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             borderRadius: '32px',
@@ -113,5 +114,13 @@ export default function FinalGradesSetupPage() {
                 </Container>
             </Box>
         </Box>
+    );
+}
+
+export default function FinalGradesSetupPage() {
+    return (
+        <Suspense fallback={<Container sx={{ py: 4 }} />}>
+            <FinalGradesSetupContent />
+        </Suspense>
     );
 }

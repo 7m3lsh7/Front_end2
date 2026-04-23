@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export interface NavbarLink {
     label: string;
     href: string;

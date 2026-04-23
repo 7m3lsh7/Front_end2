@@ -28,7 +28,7 @@ export default function ViceGradesQuarterPage() {
                     {/* Central Glass Card */}
                     <Card
                         sx={{
-                            backgroundImage: 'url(/images/Frame.png)',
+                            backgroundImage: 'url(/Images/Frame.png)',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             borderRadius: '24px',

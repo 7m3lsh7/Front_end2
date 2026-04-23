@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Box,
@@ -54,7 +54,7 @@ const exportToExcel = (students: TeacherStudent[], subject: string, classId: str
   document.body.removeChild(link);
 };
 
-export default function GradePage() {
+function GradeContent() {
   const theme = useTheme();
   const searchParams = useSearchParams();
   const classId = searchParams?.get("classId");
@@ -359,5 +359,19 @@ export default function GradePage() {
         )}
       </Box>
     </Box>
+  );
+}
+
+export default function GradePage() {
+  return (
+    <Suspense
+      fallback={
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress />
+        </Box>
+      }
+    >
+      <GradeContent />
+    </Suspense>
   );
 }

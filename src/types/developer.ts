@@ -3,7 +3,7 @@ export interface Developer {
   name: string;
   /** Role or title (e.g. "Backend Developer", "Frontend Developer") */
   role: string;
-  /** Profile image URL or path (e.g. /images/team/name.jpg) */
+  /** Profile image URL or path (e.g. /Images/team/name.jpg) */
   image?: string;
   /** GitHub profile URL */
   githubUrl?: string;

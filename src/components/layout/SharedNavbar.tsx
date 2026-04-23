@@ -24,7 +24,7 @@ import { navbarData } from '@/data/navbar';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 
-const LOGO_SRC = '/images/login/logo.png';
+const LOGO_SRC = '/Images/login/logo.png';
 
 type NavLink = { label: string; href: string };
 

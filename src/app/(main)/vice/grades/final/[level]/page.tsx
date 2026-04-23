@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Alert, Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, IconButton, Button, Divider } from '@mui/material';
 import SchoolIcon from '@mui/icons-material/School';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -10,12 +10,12 @@ import HistoryIcon from '@mui/icons-material/History';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function FinalGradesDashboard() {
+function FinalGradesDashboardContent() {
     const params = useParams();
     const searchParams = useSearchParams();
 
     const level = typeof params?.level === 'string' ? params.level : 'junior';
-    const semester = searchParams.get('semester') || '1';
+    const semester = searchParams?.get('semester') || '1';
 
     const [departmentFilter, setDepartmentFilter] = useState('om');
 
@@ -51,7 +51,7 @@ export default function FinalGradesDashboard() {
                         {/* Main Content Card */}
                         <Card
                             sx={{
-                                backgroundImage: 'url(/images/Frame.png)',
+                                backgroundImage: 'url(/Images/Frame.png)',
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 borderRadius: '24px',
@@ -174,5 +174,13 @@ export default function FinalGradesDashboard() {
                 </Container>
             </Box>
         </Box>
+    );
+}
+
+export default function FinalGradesDashboard() {
+    return (
+        <Suspense fallback={<Container sx={{ py: 4 }} />}>
+            <FinalGradesDashboardContent />
+        </Suspense>
     );
 }

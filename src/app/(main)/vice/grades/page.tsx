@@ -44,7 +44,7 @@ export default function ViceGradesDashboard() {
                     {/* Main Content Glass Container with Background */}
                     <Box
                         sx={{
-                            backgroundImage: 'url(/images/Frame.png)',
+                            backgroundImage: 'url(/Images/Frame.png)',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             borderRadius: '32px',

@@ -420,7 +420,7 @@ export default function ViceTeachersPage() {
     <Box
       sx={{
         minHeight: "100vh",
-        backgroundImage: "url(/images/background1.png)",
+        backgroundImage: "url(/Images/background1.png)",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",

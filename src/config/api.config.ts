@@ -20,6 +20,17 @@ const getAccessToken = (): string | null =>
 const getRefreshToken = (): string | null =>
   typeof window !== "undefined" ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
 
+const buildHeaders = (baseHeaders?: HeadersInit, token?: string | null): Headers => {
+  const headers = new Headers(baseHeaders);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return headers;
+};
+
 const processQueue = (error: unknown, token: string | null = null): void => {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
@@ -57,18 +68,12 @@ export const secureFetch = async (
   options?: ExtendedRequestInit
 ): Promise<unknown> => {
   try {
+    const { _retry, ...requestOptions } = options ?? {};
     const accessToken = getAccessToken();
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...(options?.headers || {}),
-    };
-
-    if (accessToken) {
-      headers["Authorization"] = `Bearer ${accessToken}`;
-    }
+    const headers = buildHeaders(requestOptions.headers, accessToken);
 
     const res = await fetch(url, {
-      ...options,
+      ...requestOptions,
       headers,
     });
 
@@ -86,15 +91,10 @@ export const secureFetch = async (
         return new Promise<string | null>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then(async (newToken) => {
-          const retryHeaders: HeadersInit = {
-            "Content-Type": "application/json",
-            ...(options?.headers || {}),
-          };
-          if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
+          const retryHeaders = buildHeaders(requestOptions.headers, newToken);
 
           const retryRes = await fetch(url, {
-            ...options,
-            _retry: true,
+            ...requestOptions,
             headers: retryHeaders,
           });
           if (!retryRes.ok) throw new Error(await getErrorMessage(retryRes));
@@ -108,15 +108,10 @@ export const secureFetch = async (
         const newToken = getAccessToken();
         processQueue(null, newToken);
 
-        const retryHeaders: HeadersInit = {
-          "Content-Type": "application/json",
-          ...(options?.headers || {}),
-        };
-        if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
+        const retryHeaders = buildHeaders(requestOptions.headers, newToken);
 
         const retryRes = await fetch(url, {
-          ...options,
-          _retry: true,
+          ...requestOptions,
           headers: retryHeaders,
         });
         if (!retryRes.ok) throw new Error(await getErrorMessage(retryRes));

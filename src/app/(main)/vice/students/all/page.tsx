@@ -23,7 +23,7 @@ export default function AllStudentsPage() {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    backgroundImage: 'url(/images/background1.png)',
+                    backgroundImage: 'url(/Images/background1.png)',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     zIndex: -1,

@@ -128,7 +128,7 @@ export default function ViceStudentsPage() {
                     {/* Main Content Glass Container with Background */}
                     <Box
                         sx={{
-                            backgroundImage: 'url(/images/background1.png)',
+                            backgroundImage: 'url(/Images/background1.png)',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             borderRadius: '24px',
