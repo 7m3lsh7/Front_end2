@@ -781,6 +781,12 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 | `/api/vice/grades/final/students` | PUT | ✅ | Save final grades |
 | `/api/vice/grades/final/submit` | POST | ✅ | Submit final grades |
 | `/api/vice/grades/final/history` | GET | ✅ | Final grades history |
+| `/api/analytics/overview` | GET | ✅ | KPIs + subject stats + class rankings |
+| `/api/rankings` | GET | ✅ | Student ranking list |
+| `/api/export` / `/api/student/grades` | GET | ✅ | Raw grade data for PDF |
+| `/api/notifications` | GET | ✅ | Notification list |
+| `/api/notifications/:id` | PATCH | ✅ | Mark notification as read |
+| `/api/student/grades/progress` | GET | ✅ | Grade progress data |
 
 **Authentication Method:** All protected endpoints use `Authorization: Bearer <accessToken>` header.
 
@@ -809,4 +815,4 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 
 ---
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-25 03:17:37

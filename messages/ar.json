@@ -16,7 +16,11 @@
     "save": "حفظ",
     "cancel": "إلغاء",
     "refresh": "تحديث",
-    "notSelected": "غير محدد"
+    "notSelected": "غير محدد",
+    "progress": "التقدم",
+    "rankings": "التصنيفات",
+    "analytics": "التحليلات",
+    "login": "تسجيل الدخول"
   },
   "auth": {
     "adminPortal": "بوابة الإدارة",

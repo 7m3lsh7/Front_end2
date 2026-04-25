@@ -6,7 +6,7 @@ export function getPalette(mode: "light" | "dark"): PaletteOptions {
     return {
         mode,
         primary: { main: "#FFC600", dark: "#E6B800" },
-        secondary: { main: "#ffc600", contrastText: isDark ? "#0a0a0a" : "#fff" },
+        secondary: { main: "#FFC600", contrastText: isDark ? "#0a0a0a" : "#fff" },
         error: { main: isDark ? "#ff6b6b" : "rgba(191, 0, 0, 0.16)", light: "#D40000" },
         warning: { main: "#ff9800" },
         info: { main: "#2196f3" },

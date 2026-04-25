@@ -16,7 +16,11 @@
     "save": "Save",
     "cancel": "Cancel",
     "refresh": "Refresh",
-    "notSelected": "Not selected"
+    "notSelected": "Not selected",
+    "progress": "Progress",
+    "rankings": "Rankings",
+    "analytics": "Analytics",
+    "login": "Login"
   },
   "auth": {
     "adminPortal": "Admin Portal",

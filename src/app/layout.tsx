@@ -2,7 +2,6 @@ import React from "react";
 import { cookies } from "next/headers";
 import AppProviders from "@/providers/AppProviders";
 import AccessibilityScript from "@/providers/AccessibilityScript";
-import SkipToContent from "@/components/a11y/SkipToContent";
 import type { AppLanguage } from "@/context/LanguageContext";
 import type { ThemeMode } from "@/context/ThemeModeContext";
 
@@ -32,7 +31,6 @@ export default async function RootLayout({
       <body dir={dir}>
         <AccessibilityScript />
         <AppProviders initialLanguage={initialLanguage} initialThemeMode={initialThemeMode}>
-          <SkipToContent />
           <main id="main-content" tabIndex={-1}>
             {children}
           </main>

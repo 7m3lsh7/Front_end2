@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Container, Typography, Stack, Button, Card, MenuItem, Select, FormControl, InputLabel, TextField, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Alert } from '@mui/material';
+import { Box, Container, Typography, Stack, Button, Card, MenuItem, Select, FormControl, InputLabel, TextField, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Alert, useTheme, alpha } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import AddStudentModal from '@/components/vice/students/AddStudentModal';
 import { ClassesAPI } from '@/data/classes.api';
 import { ViceStudentsAPI } from '@/data/vice-students.api';
@@ -13,8 +14,21 @@ import { useLanguage } from '@/context/LanguageContext';
 import LoadingRegion from '@/components/a11y/LoadingRegion';
 import { appToast } from '@/hooks/useAppToast';
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+};
+
 export default function ViceStudentsPage() {
     const { t } = useLanguage();
+    const theme = useTheme();
+    const primary = theme.palette.primary.main;
+    const secondary = theme.palette.secondary?.main || primary;
     const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
     const [yearId, setYearId] = useState<string>('2024-2025');
     const [department, setDepartment] = useState<ViceDepartment>('OM');
@@ -82,7 +96,6 @@ export default function ViceStudentsPage() {
 
     useEffect(() => {
         loadClasses();
-        // reset selection when year changes
         setSelectedClassId(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [yearId]);
@@ -116,309 +129,302 @@ export default function ViceStudentsPage() {
         }
     };
 
+    const glassCardSx = {
+        p: 4, 
+        borderRadius: '24px', 
+        backgroundColor: alpha(theme.palette.background.paper, 0.7),
+        backdropFilter: 'blur(24px)',
+        border: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
+        boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.08)}`,
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: `0 16px 50px ${alpha(primary, 0.1)}`,
+        }
+    };
+
+    const badgeSx = {
+        width: 40, height: 40,
+        background: `linear-gradient(135deg, ${primary}, ${secondary})`,
+        borderRadius: '12px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontWeight: 'bold', color: theme.palette.primary.contrastText,
+        boxShadow: `0 4px 12px ${alpha(primary, 0.4)}`,
+        fontSize: '1.2rem'
+    };
+
     return (
-           <>
+        <>
+            <Box sx={{ position: 'relative', minHeight: '100vh', paddingBottom: 4, bgcolor: theme.palette.background.default, overflow: 'hidden' }}>
+                {/* Animated Background Gradients */}
+                <Box
+                    component={motion.div}
+                    animate={{ scale: [1, 1.1, 1], rotate: [0, -10, 0] }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    sx={{
+                        position: 'absolute', top: '-20%', right: '-10%', width: '100%', height: '100%',
+                        background: `radial-gradient(circle at 70% 30%, ${alpha(primary, 0.15)}, transparent 50%)`,
+                        zIndex: 0, pointerEvents: 'none',
+                    }}
+                />
 
+                <Box sx={{ py: 4, position: 'relative', zIndex: 1 }}>
+                    <Container maxWidth="lg">
+                        <Box component={motion.div} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }} sx={{ mb: 6 }}>
+                            <Typography variant="h2" sx={{ fontWeight: 800, background: `linear-gradient(45deg, ${theme.palette.text.primary}, ${primary})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                {t('students.studentsManagement')}
+                            </Typography>
+                        </Box>
 
-        <Box sx={{ position: 'relative', minHeight: '100vh', paddingBottom: 4 }}>
-            {/* Page Header Area */}
-            <Box sx={{ py: 4, position: 'relative' }}>
-                <Container maxWidth="lg">
-                    <Box sx={{ mb: 6 }}>
-                        <Typography variant="h3" fontWeight="bold" sx={{ color: '#000' }}>
-                            {t('students.studentsManagement')}
-                        </Typography>
-                    </Box>
-
-                    {/* Main Content Glass Container with Background */}
-                    <Box
-                        sx={{
-                            backgroundImage: 'url(/Images/background1.png)',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            borderRadius: '24px',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            boxShadow: '0px 8px 32px rgba(0, 0, 0, 0.3)',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            minHeight: '600px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
-                    >
-                        {/* Dark Overlay inside the card */}
                         <Box
+                            component={motion.div}
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
                             sx={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                                zIndex: 0,
+                                borderRadius: '32px',
+                                position: 'relative',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 4,
                             }}
-                        />
-
-                        {/* Content inside the glass card */}
-                        <Box sx={{
-                            position: 'relative',
-                            zIndex: 1,
-                            width: '100%',
-                            p: { xs: 3, md: 6 },
-                        }}>
+                        >
                             <Stack spacing={4}>
-
                                 {/* Step 1: Create New Class */}
-                                <Card sx={{ p: 3, borderRadius: '16px', backgroundColor: '#fff' }}>
-                                    <Stack spacing={2}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Box sx={{
-                                                width: 32, height: 32,
-                                                backgroundColor: '#ffc107',
-                                                borderRadius: '8px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontWeight: 'bold', color: '#000'
-                                            }}>
-                                                1
+                                <Box component={motion.div} variants={itemVariants}>
+                                    <Card sx={glassCardSx}>
+                                        <Stack spacing={3}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Box sx={badgeSx}>1</Box>
+                                                <Typography variant="h5" fontWeight="800" sx={{ letterSpacing: '-0.01em' }}>{t('students.createNewClass')}</Typography>
                                             </Box>
-                                            <Typography variant="h6" fontWeight="bold">{t('students.createNewClass')}</Typography>
-                                        </Box>
 
-                                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                                            <FormControl fullWidth size="small" sx={{ maxWidth: 200, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                                                <InputLabel>{t('students.academicYear')}</InputLabel>
-                                                <Select label={t('students.academicYear')} value={yearId} onChange={(e) => setYearId(String(e.target.value))}>
-                                                    <MenuItem value="2024-2025">2024-2025</MenuItem>
-                                                </Select>
-                                            </FormControl>
-                                            <FormControl fullWidth size="small" sx={{ maxWidth: 200, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                                                <InputLabel>{t('students.department')}</InputLabel>
-                                                <Select label={t('students.department')} value={department} onChange={(e) => setDepartment(e.target.value as ViceDepartment)}>
-                                                    <MenuItem value="OM">OM</MenuItem>
-                                                    <MenuItem value="SD">SD</MenuItem>
-                                                </Select>
-                                            </FormControl>
-                                            <TextField
-                                                placeholder={t('students.className')}
-                                                size="small"
-                                                value={className}
-                                                onChange={(e) => setClassName(e.target.value)}
-                                                sx={{ backgroundColor: '#f5f5f5', borderRadius: 1 }}
-                                            />
-                                            <Button
-                                                variant="contained"
-                                                startIcon={<AddIcon />}
-                                                onClick={handleCreateClass}
-                                                disabled={creatingClass}
-                                                sx={{
-                                                    backgroundColor: '#ffc107',
-                                                    color: '#000',
-                                                    fontWeight: 'bold',
-                                                    '&:hover': { backgroundColor: '#ffca2c' }
-                                                }}
-                                            >
-                                                {creatingClass ? t('students.creating') : t('students.createClass')}
-                                            </Button>
-                                        </Box>
-                                        {creatingClassError && <Alert severity="error">{creatingClassError}</Alert>}
-                                    </Stack>
-                                </Card>
+                                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <FormControl fullWidth size="small" sx={{ maxWidth: 200 }}>
+                                                    <InputLabel>{t('students.academicYear')}</InputLabel>
+                                                    <Select label={t('students.academicYear')} value={yearId} onChange={(e) => setYearId(String(e.target.value))} sx={{ borderRadius: 2 }}>
+                                                        <MenuItem value="2024-2025">2024-2025</MenuItem>
+                                                    </Select>
+                                                </FormControl>
+                                                <FormControl fullWidth size="small" sx={{ maxWidth: 200 }}>
+                                                    <InputLabel>{t('students.department')}</InputLabel>
+                                                    <Select label={t('students.department')} value={department} onChange={(e) => setDepartment(e.target.value as ViceDepartment)} sx={{ borderRadius: 2 }}>
+                                                        <MenuItem value="OM">OM</MenuItem>
+                                                        <MenuItem value="SD">SD</MenuItem>
+                                                    </Select>
+                                                </FormControl>
+                                                <TextField
+                                                    label={t('students.className')}
+                                                    size="small"
+                                                    value={className}
+                                                    onChange={(e) => setClassName(e.target.value)}
+                                                    sx={{ borderRadius: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                                />
+                                                <Button
+                                                    component={motion.button}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    variant="contained"
+                                                    startIcon={<AddIcon />}
+                                                    onClick={handleCreateClass}
+                                                    disabled={creatingClass}
+                                                    sx={{
+                                                        background: `linear-gradient(45deg, ${primary}, ${secondary})`,
+                                                        color: theme.palette.primary.contrastText,
+                                                        fontWeight: 700,
+                                                        borderRadius: '12px',
+                                                        px: 3, py: 1,
+                                                        boxShadow: `0 4px 14px ${alpha(primary, 0.4)}`,
+                                                    }}
+                                                >
+                                                    {creatingClass ? t('students.creating') : t('students.createClass')}
+                                                </Button>
+                                            </Box>
+                                            {creatingClassError && <Alert severity="error" sx={{ borderRadius: 2 }}>{creatingClassError}</Alert>}
+                                        </Stack>
+                                    </Card>
+                                </Box>
 
                                 {/* Step 2: Select Class */}
-                                <Card sx={{ p: 3, borderRadius: '16px', backgroundColor: '#fff' }}>
-                                    <Stack spacing={2}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Box sx={{
-                                                width: 32, height: 32,
-                                                backgroundColor: '#ffc107',
-                                                borderRadius: '8px',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontWeight: 'bold', color: '#000'
-                                            }}>
-                                                2
+                                <Box component={motion.div} variants={itemVariants}>
+                                    <Card sx={glassCardSx}>
+                                        <Stack spacing={3}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Box sx={badgeSx}>2</Box>
+                                                <Typography variant="h5" fontWeight="800" sx={{ letterSpacing: '-0.01em' }}>{t('students.selectClass')}</Typography>
                                             </Box>
-                                            <Typography variant="h6" fontWeight="bold">{t('students.selectClass')}</Typography>
-                                        </Box>
 
-                                        <Box>
-                                            <FormControl fullWidth size="small" sx={{ backgroundColor: '#f5f5f5', borderRadius: 1 }}>
-                                                <InputLabel>{t('students.selectClass')}</InputLabel>
-                                                <Select
-                                                    label={t('students.selectClass')}
-                                                    value={selectedClassId ?? ''}
-                                                    onChange={(e) => setSelectedClassId(Number(e.target.value))}
-                                                    disabled={classesLoading}
-                                                >
-                                                    {classesLoading ? (
-                                                        <MenuItem disabled>
-                                                            <LoadingRegion />
-                                                        </MenuItem>
-                                                    ) : classes.length === 0 ? (
-                                                        <MenuItem disabled>{t('teachers.noClassesForYear')}</MenuItem>
-                                                    ) : (
-                                                        classes.map((c) => (
-                                                            <MenuItem key={c.classId} value={c.classId}>
-                                                                {c.className}
-                                                            </MenuItem>
-                                                        ))
-                                                    )}
-                                                </Select>
-                                            </FormControl>
-                                            {classesError && <Alert severity="error" sx={{ mt: 1 }}>{classesError}</Alert>}
-                                        </Box>
-                                    </Stack>
-                                </Card>
+                                            <Box sx={{ maxWidth: 400 }}>
+                                                <FormControl fullWidth size="small">
+                                                    <InputLabel>{t('students.selectClass')}</InputLabel>
+                                                    <Select
+                                                        label={t('students.selectClass')}
+                                                        value={selectedClassId ?? ''}
+                                                        onChange={(e) => setSelectedClassId(Number(e.target.value))}
+                                                        disabled={classesLoading}
+                                                        sx={{ borderRadius: 2 }}
+                                                    >
+                                                        {classesLoading ? (
+                                                            <MenuItem disabled><LoadingRegion /></MenuItem>
+                                                        ) : classes.length === 0 ? (
+                                                            <MenuItem disabled>{t('teachers.noClassesForYear')}</MenuItem>
+                                                        ) : (
+                                                            classes.map((c) => (
+                                                                <MenuItem key={c.classId} value={c.classId}>{c.className}</MenuItem>
+                                                            ))
+                                                        )}
+                                                    </Select>
+                                                </FormControl>
+                                                {classesError && <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>{classesError}</Alert>}
+                                            </Box>
+                                        </Stack>
+                                    </Card>
+                                </Box>
 
                                 {/* Step 3: Student Management */}
-                                <Card sx={{ p: 3, borderRadius: '16px', backgroundColor: '#fff', border: '1px solid #e0e0e0' }}>
-                                    <Stack spacing={3}>
-                                        {/* Header & Add Button */}
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                <Box sx={{
-                                                    width: 32, height: 32,
-                                                    backgroundColor: '#ffc107',
-                                                    borderRadius: '8px',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontWeight: 'bold', color: '#000'
-                                                }}>
-                                                    3
+                                <Box component={motion.div} variants={itemVariants}>
+                                    <Card sx={{ ...glassCardSx, mb: 4 }}>
+                                        <Stack spacing={4}>
+                                            {/* Header & Add Button */}
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                    <Box sx={badgeSx}>3</Box>
+                                                    <Typography variant="h5" fontWeight="800">{t('students.studentManagement')}</Typography>
                                                 </Box>
-                                            <Typography variant="h6" fontWeight="bold">{t('students.studentManagement')}</Typography>
-                                            </Box>
-                                            <Button
-                                                variant="contained"
-                                                startIcon={<AddIcon />}
-                                                onClick={() => setIsAddStudentModalOpen(true)}
-                                                sx={{
-                                                    backgroundColor: '#ffc107',
-                                                    color: '#000',
-                                                    fontWeight: 'bold',
-                                                    '&:hover': { backgroundColor: '#ffca2c' }
-                                                }}
-                                            >
-                                                {t('students.addNewStudent')}
-                                            </Button>
-                                        </Box>
-
-                                        {/* Filters */}
-                                        <Box sx={{ display: 'flex', gap: 4 }}>
-                                            <RadioGroup row value={department} onChange={(e) => setDepartment(e.target.value as ViceDepartment)}>
-                                                <FormControlLabel value="OM" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="OM" />
-                                                <FormControlLabel value="SD" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="SD" />
-                                            </RadioGroup>
-                                            <RadioGroup row value={level} onChange={(e) => setLevel(e.target.value as ViceLevel)}>
-                                                <FormControlLabel value="junior" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Junior" />
-                                                <FormControlLabel value="wheeler" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Wheeler" />
-                                                <FormControlLabel value="senior" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Senior" />
-                                            </RadioGroup>
-                                        </Box>
-
-                                        {/* Students List Title */}
-                                        <Typography variant="h6" fontWeight="bold">{t('students.studentsList')}</Typography>
-
-                                        {/* Table */}
-                                        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e0e0e0' }} aria-busy={studentsLoading}>
-                                            <Table>
-                                                <caption style={{ textAlign: 'left', padding: '8px 16px', fontWeight: 600 }}>
-                                                    {t('students.studentsList')}
-                                                </caption>
-                                                <TableHead sx={{ backgroundColor: '#ffc107' }}>
-                                                    <TableRow>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.studentName')}</TableCell>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.studentId')}</TableCell>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.department')}</TableCell>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>{t('students.class')}</TableCell>
-                                                    </TableRow>
-                                                </TableHead>
-                                                <TableBody>
-                                                    {studentsLoading ? (
-                                                        <TableRow>
-                                                            <TableCell colSpan={4}>
-                                                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                                                                    <CircularProgress />
-                                                                </Box>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ) : students.length === 0 ? (
-                                                        <TableRow>
-                                                            <TableCell colSpan={4}>{t('students.noStudentsFound')}</TableCell>
-                                                        </TableRow>
-                                                    ) : (
-                                                        students.map((s) => (
-                                                            <TableRow key={s.id}>
-                                                                <TableCell>{s.name}</TableCell>
-                                                                <TableCell>{s.studentCode}</TableCell>
-                                                                <TableCell>{s.department}</TableCell>
-                                                                <TableCell>{s.className}</TableCell>
-                                                            </TableRow>
-                                                        ))
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </TableContainer>
-                                        {studentsError && <Alert severity="error">{studentsError}</Alert>}
-
-                                        {/* Footer Actions */}
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-                                            <Button
-                                                component={Link}
-                                                href="/vice/students/all"
-                                                variant="contained"
-                                                sx={{
-                                                    backgroundColor: '#ffc107', color: '#000', fontWeight: 'bold', '&:hover': { backgroundColor: '#ffca2c' }
-                                                }}
-                                            >
-                                                {t('students.allStudents')}
-                                            </Button>
-                                            <Box sx={{ display: 'flex', gap: 2 }}>
                                                 <Button
+                                                    component={motion.button}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
                                                     variant="contained"
+                                                    startIcon={<AddIcon />}
                                                     onClick={() => setIsAddStudentModalOpen(true)}
                                                     sx={{
-                                                        backgroundColor: '#ffc107', color: '#000', fontWeight: 'bold', '&:hover': { backgroundColor: '#ffca2c' }
+                                                        background: `linear-gradient(45deg, ${primary}, ${secondary})`,
+                                                        color: theme.palette.primary.contrastText,
+                                                        fontWeight: 700,
+                                                        borderRadius: '12px',
+                                                        boxShadow: `0 4px 14px ${alpha(primary, 0.4)}`,
                                                     }}
                                                 >
-                                                    {t('students.addStudent')}
-                                                </Button>
-                                                <Button
-                                                    variant="contained"
-                                                    sx={{
-                                                        backgroundColor: '#ffc107', color: '#000', fontWeight: 'bold', '&:hover': { backgroundColor: '#ffca2c' }
-                                                    }}
-                                                >
-                                                    {t('students.selectAllStudents')}
+                                                    {t('students.addNewStudent')}
                                                 </Button>
                                             </Box>
-                                        </Box>
-                                    </Stack>
-                                </Card>
+
+                                            {/* Filters */}
+                                            <Box sx={{ display: 'flex', gap: 6, flexWrap: 'wrap', bgcolor: alpha(theme.palette.background.default, 0.5), p: 2, borderRadius: 3 }}>
+                                                <RadioGroup row value={department} onChange={(e) => setDepartment(e.target.value as ViceDepartment)}>
+                                                    <FormControlLabel value="OM" control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} />} label={<Typography fontWeight={600}>OM</Typography>} />
+                                                    <FormControlLabel value="SD" control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} />} label={<Typography fontWeight={600}>SD</Typography>} />
+                                                </RadioGroup>
+                                                <RadioGroup row value={level} onChange={(e) => setLevel(e.target.value as ViceLevel)}>
+                                                    <FormControlLabel value="junior" control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} />} label={<Typography fontWeight={600}>Junior</Typography>} />
+                                                    <FormControlLabel value="wheeler" control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} />} label={<Typography fontWeight={600}>Wheeler</Typography>} />
+                                                    <FormControlLabel value="senior" control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} />} label={<Typography fontWeight={600}>Senior</Typography>} />
+                                                </RadioGroup>
+                                            </Box>
+
+                                            {/* Students List Title */}
+                                            <Typography variant="h6" fontWeight="700" color="text.secondary">{t('students.studentsList')}</Typography>
+
+                                            {/* Table */}
+                                            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: `1px solid ${alpha(theme.palette.divider, 0.2)}`, bgcolor: 'transparent' }} aria-busy={studentsLoading}>
+                                                <Table>
+                                                    <TableHead sx={{ backgroundColor: alpha(primary, 0.1) }}>
+                                                        <TableRow>
+                                                            <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem' }}>{t('students.studentName')}</TableCell>
+                                                            <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem' }}>{t('students.studentId')}</TableCell>
+                                                            <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem' }}>{t('students.department')}</TableCell>
+                                                            <TableCell sx={{ fontWeight: 800, fontSize: '0.95rem' }}>{t('students.class')}</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {studentsLoading ? (
+                                                            <TableRow>
+                                                                <TableCell colSpan={4}>
+                                                                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                                                        <CircularProgress color="primary" />
+                                                                    </Box>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ) : students.length === 0 ? (
+                                                            <TableRow>
+                                                                <TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary', fontWeight: 500 }}>
+                                                                    {t('students.noStudentsFound')}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ) : (
+                                                            students.map((s, idx) => (
+                                                                <TableRow 
+                                                                    key={s.id} 
+                                                                    component={motion.tr} 
+                                                                    initial={{ opacity: 0, y: 10 }} 
+                                                                    animate={{ opacity: 1, y: 0 }} 
+                                                                    transition={{ delay: idx * 0.05 }}
+                                                                    sx={{ '&:hover': { bgcolor: alpha(primary, 0.05) }, transition: 'background-color 0.2s' }}
+                                                                >
+                                                                    <TableCell sx={{ fontWeight: 600 }}>{s.name}</TableCell>
+                                                                    <TableCell>{s.studentCode}</TableCell>
+                                                                    <TableCell>
+                                                                        <Box sx={{ bgcolor: alpha(primary, 0.1), color: primary, display: 'inline-block', px: 1.5, py: 0.5, borderRadius: 1.5, fontWeight: 700, fontSize: '0.8rem' }}>
+                                                                            {s.department}
+                                                                        </Box>
+                                                                    </TableCell>
+                                                                    <TableCell>{s.className}</TableCell>
+                                                                </TableRow>
+                                                            ))
+                                                        )}
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                            {studentsError && <Alert severity="error" sx={{ borderRadius: 2 }}>{studentsError}</Alert>}
+
+                                            {/* Footer Actions */}
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mt: 2 }}>
+                                                <Button
+                                                    component={Link}
+                                                    href="/vice/students/all"
+                                                    variant="outlined"
+                                                    sx={{ borderRadius: '12px', fontWeight: 700, px: 3 }}
+                                                >
+                                                    {t('students.allStudents')}
+                                                </Button>
+                                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                                    <Button
+                                                        variant="contained"
+                                                        onClick={() => setIsAddStudentModalOpen(true)}
+                                                        sx={{ borderRadius: '12px', fontWeight: 700, px: 3, boxShadow: `0 4px 14px ${alpha(primary, 0.3)}` }}
+                                                    >
+                                                        {t('students.addStudent')}
+                                                    </Button>
+                                                </Box>
+                                            </Box>
+                                        </Stack>
+                                    </Card>
+                                </Box>
                             </Stack>
                         </Box>
-                    </Box>
-                </Container>
-            </Box >
+                    </Container>
+                </Box >
 
-            <AddStudentModal
-                open={isAddStudentModalOpen}
-                onClose={() => setIsAddStudentModalOpen(false)}
-                classId={selectedClassId}
-                year={level}
-                department={department}
-                onSubmit={async (payload) => {
-                    if (!selectedClassId) throw new Error(t('modal.pleaseSelectClassFirst'));
-                    await ViceStudentsAPI.create({
-                        ...payload,
-                        department,
-                        year: level,
-                        classId: selectedClassId,
-                    });
-                    await loadStudents();
-                    appToast.success(t('modal.studentAddedSuccess'));
-                }}
-            />
-        </Box >
+                <AddStudentModal
+                    open={isAddStudentModalOpen}
+                    onClose={() => setIsAddStudentModalOpen(false)}
+                    classId={selectedClassId}
+                    year={level}
+                    department={department}
+                    onSubmit={async (payload) => {
+                        if (!selectedClassId) throw new Error(t('modal.pleaseSelectClassFirst'));
+                        await ViceStudentsAPI.create({
+                            ...payload,
+                            department,
+                            year: level,
+                            classId: selectedClassId,
+                        });
+                        await loadStudents();
+                        appToast.success(t('modal.studentAddedSuccess'));
+                    }}
+                />
+            </Box >
         </>
     );
 }

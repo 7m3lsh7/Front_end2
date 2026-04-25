@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Box,
   Container,
@@ -435,50 +436,107 @@ export default function ViceTeachersPage() {
 
   /* ===================== UI ===================== */
 
+  const primary = theme.palette.primary.main;
+  const secondary = theme.palette.secondary?.main || primary;
+
+  const glassCardSx = {
+      p: { xs: 3, md: 4 }, 
+      borderRadius: '24px', 
+      backgroundColor: alpha(theme.palette.background.paper, 0.7),
+      backdropFilter: 'blur(24px)',
+      border: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
+      boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.08)}`,
+      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+      '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: `0 16px 50px ${alpha(primary, 0.1)}`,
+      }
+  };
+
+  const badgeSx = {
+      width: 40, height: 40,
+      background: `linear-gradient(135deg, ${primary}, ${secondary})`,
+      borderRadius: '12px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontWeight: 'bold', color: theme.palette.primary.contrastText,
+      boxShadow: `0 4px 12px ${alpha(primary, 0.4)}`,
+      fontSize: '1.2rem'
+  };
+
+  const containerVariants = {
+      hidden: { opacity: 0 },
+      visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+  };
+
   return (
     <Box
       sx={{
+        position: 'relative',
         minHeight: "100vh",
-        backgroundImage: "url(/Images/background1.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
+        bgcolor: theme.palette.background.default,
+        overflow: 'hidden',
         py: { xs: 2, md: 4 },
       }}
     >
-      <Container maxWidth="lg">
+      {/* Animated Background Gradients */}
+      <Box
+          component={motion.div}
+          animate={{ scale: [1, 1.1, 1], rotate: [0, 10, 0] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          sx={{
+              position: 'absolute', top: '-20%', left: '-10%', width: '120%', height: '120%',
+              background: `radial-gradient(circle at 30% 70%, ${alpha(primary, 0.15)}, transparent 50%)`,
+              zIndex: 0, pointerEvents: 'none',
+          }}
+      />
+
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
         <Stack spacing={4}>
           {/* Header */}
           <Box
+            component={motion.div}
+            initial={{ opacity: 0, x: -30 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            transition={{ duration: 0.6 }}
             sx={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               gap: 2,
               flexWrap: "wrap",
+              mb: 2
             }}
           >
             <Typography
-              variant="h4"
-              fontWeight={700}
+              variant="h2"
               sx={{
-                color: theme.palette.common.white,
-                lineHeight: 1.2,
-                textShadow: `0 2px 10px ${alpha(theme.palette.common.black, 0.45)}`,
-                fontSize: { xs: "1.5rem", md: "2rem" },
+                fontWeight: 800, 
+                background: `linear-gradient(45deg, ${theme.palette.text.primary}, ${primary})`, 
+                WebkitBackgroundClip: 'text', 
+                WebkitTextFillColor: 'transparent'
               }}
             >
               {t("teachers.dashboardTitle")}
             </Typography>
             <Button
+              component={motion.button}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               variant="contained"
               onClick={() => setOpenTeachersList(true)}
               sx={{
-                backgroundColor: theme.palette.primary.main,
+                background: `linear-gradient(45deg, ${primary}, ${secondary})`,
                 color: theme.palette.primary.contrastText,
                 fontWeight: 700,
                 textTransform: "none",
-                "&:hover": { backgroundColor: theme.palette.primary.dark },
+                borderRadius: '12px',
+                px: 3, py: 1,
+                boxShadow: `0 4px 14px ${alpha(primary, 0.4)}`,
               }}
             >
               {t("teachers.listTeacher")}
@@ -487,314 +545,302 @@ export default function ViceTeachersPage() {
 
           {/* Main Content */}
           <Box
+            component={motion.div}
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
             sx={{
-              backgroundColor: alpha(theme.palette.background.default, 0.8),
-              backdropFilter: "blur(4px)",
-              borderRadius: "24px",
-              border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-              p: { xs: 2, md: 4 },
-              color: theme.palette.text.primary,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
             }}
           >
             <Stack spacing={4}>
               {/* Step 1 */}
-              <Card
-                sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px", backgroundColor: theme.palette.background.paper }}
-              >
-                <Stack spacing={2}>
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Box
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        backgroundColor: theme.palette.primary.main,
-                        borderRadius: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 700,
-                        color: theme.palette.primary.contrastText,
-                      }}
-                    >
-                      1
+              <Box component={motion.div} variants={itemVariants}>
+                <Card sx={glassCardSx}>
+                  <Stack spacing={3}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: 'center' }}>
+                      <Box sx={badgeSx}>1</Box>
+                      <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.01em' }}>
+                        {t("teachers.selectTeacher")}
+                      </Typography>
                     </Box>
-                    <Typography variant="h6" fontWeight={700} color="text.primary">
-                      {t("teachers.selectTeacher")}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                    <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 320 }, minWidth: 220 }}>
-                      <InputLabel>{t("teachers.selectTeacher")}</InputLabel>
-                      <Select
-                        label={t("teachers.selectTeacher")}
-                        value={selectedTeacherId}
-                        onChange={(e) => setSelectedTeacherId(e.target.value)}
-                        disabled={isLoadingTeachers}
-                      >
-                        {isLoadingTeachers ? (
-                          <MenuItem disabled>
-                            <LoadingRegion />
-                          </MenuItem>
-                        ) : teachers.length === 0 ? (
-                          <MenuItem disabled>{t("teachers.noTeachersAvailable")}</MenuItem>
-                        ) : (
-                          teachers.map((t) => (
-                            <MenuItem key={t.id} value={t.id}>
-                              {t.fullName}
+                    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: 'center' }}>
+                      <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 320 }, minWidth: 220 }}>
+                        <InputLabel>{t("teachers.selectTeacher")}</InputLabel>
+                        <Select
+                          label={t("teachers.selectTeacher")}
+                          value={selectedTeacherId}
+                          onChange={(e) => setSelectedTeacherId(e.target.value)}
+                          disabled={isLoadingTeachers}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          {isLoadingTeachers ? (
+                            <MenuItem disabled>
+                              <LoadingRegion />
                             </MenuItem>
-                          ))
-                        )}
-                      </Select>
-                    </FormControl>
+                          ) : teachers.length === 0 ? (
+                            <MenuItem disabled>{t("teachers.noTeachersAvailable")}</MenuItem>
+                          ) : (
+                            teachers.map((t) => (
+                              <MenuItem key={t.id} value={t.id}>
+                                {t.fullName}
+                              </MenuItem>
+                            ))
+                          )}
+                        </Select>
+                      </FormControl>
 
-                    <Button
-                      onClick={() => setOpenAddTeacher(true)}
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      sx={{
-                        backgroundColor: theme.palette.primary.main,
-                        color: theme.palette.primary.contrastText,
-                        textTransform: "none",
-                        fontWeight: 700,
-                        "&:hover": { backgroundColor: theme.palette.primary.dark },
-                      }}
-                    >
-                      {t("teachers.addNewTeacher")}
-                    </Button>
-                  </Box>
-                  {pendingTeacherDraft && (
-                    <Alert severity="info">
-                      {t("teachers.draftSaved", "New teacher draft saved. Complete year/subject/classes then click")} <b>{t("teachers.assignTeacherCta", "Assign Teacher")}</b> {t("teachers.toCreateAssign", "to create and assign.")}
-                    </Alert>
-                  )}
-                </Stack>
-              </Card>
-
-              {/* Step 2 */}
-              <Card
-                sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px", backgroundColor: theme.palette.background.paper }}
-              >
-                <Stack spacing={2}>
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <Box
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        backgroundColor: theme.palette.primary.main,
-                        borderRadius: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 700,
-                        color: theme.palette.primary.contrastText,
-                      }}
-                    >
-                      2
+                      <Button
+                        component={motion.button}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setOpenAddTeacher(true)}
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        sx={{
+                          background: `linear-gradient(45deg, ${primary}, ${secondary})`,
+                          color: theme.palette.primary.contrastText,
+                          textTransform: "none",
+                          fontWeight: 700,
+                          borderRadius: '12px',
+                          px: 3,
+                          boxShadow: `0 4px 14px ${alpha(primary, 0.4)}`,
+                        }}
+                      >
+                        {t("teachers.addNewTeacher")}
+                      </Button>
                     </Box>
-                    <Typography variant="h6" fontWeight={700} color="text.primary">
-                      {t("teachers.subjectAssignment")}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                    <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 220 }, minWidth: 180 }}>
-                      <InputLabel>{t("students.academicYear")}</InputLabel>
-                      <Select
-                        label={t("students.academicYear")}
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                      >
-                        <MenuItem value="2024-2025">2024-2025</MenuItem>
-                        <MenuItem value="2025-2026">2025-2026</MenuItem>
-                        <MenuItem value="2026-2027">2026-2027</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 220 }, minWidth: 180 }}>
-                      <InputLabel>{t("teachers.subject")}</InputLabel>
-                      <Select
-                        label={t("teachers.subject")}
-                        value={selectedSubjectId}
-                        onChange={(e) => setSelectedSubjectId(e.target.value)}
-                        disabled={isLoadingSubjects || !selectedYear}
-                      >
-                        {isLoadingSubjects ? (
-                          <MenuItem disabled>
-                            <LoadingRegion />
-                          </MenuItem>
-                        ) : subjects.length === 0 ? (
-                          <MenuItem disabled>{t("teachers.noSubjectsAvailable", "No subjects available")}</MenuItem>
-                        ) : (
-                          subjects.map((s) => (
-                            <MenuItem key={s.id} value={s.id}>
-                              {s.subjectName}
-                            </MenuItem>
-                          ))
-                        )}
-                      </Select>
-                    </FormControl>
-
-                    <AccessibleIconButton
-                      label={t("teachers.addSubject", "Add subject")}
-                      onClick={() => setOpenAddSubject(true)}
-                      sx={{
-                        backgroundColor: theme.palette.primary.main,
-                        color: theme.palette.primary.contrastText,
-                        "&:hover": { backgroundColor: theme.palette.primary.dark },
-                      }}
-                    >
-                      <AddIcon />
-                    </AccessibleIconButton>
-                  </Box>
-                </Stack>
-              </Card>
-            </Stack>
-            <Card sx={{ p: { xs: 2, md: 3 }, borderRadius: "16px", backgroundColor: theme.palette.background.paper }}>
-            <Stack spacing={2}>
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <Box
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    backgroundColor: theme.palette.primary.main,
-                    borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                    color: theme.palette.primary.contrastText,
-                  }}
-                >
-                  3
-                </Box>
-                <Typography variant="h6" fontWeight={700} color="text.primary">
-                  {t("teachers.assignClasses")}
-                </Typography>
+                    {pendingTeacherDraft && (
+                      <Alert severity="info" sx={{ borderRadius: 2 }}>
+                        {t("teachers.draftSaved", "New teacher draft saved. Complete year/subject/classes then click")} <b>{t("teachers.assignTeacherCta", "Assign Teacher")}</b> {t("teachers.toCreateAssign", "to create and assign.")}
+                      </Alert>
+                    )}
+                  </Stack>
+                </Card>
               </Box>
 
-              {isLoadingClasses ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                  {classes.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                      {t("teachers.noClassesForYear")}
-                    </Typography>
-                  ) : (
-                    classes.map((cls) => {
-                      const isSelected = selectedClassIds.includes(cls.classId);
+              {/* Step 2 */}
+              <Box component={motion.div} variants={itemVariants}>
+                <Card sx={glassCardSx}>
+                  <Stack spacing={3}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: 'center' }}>
+                      <Box sx={badgeSx}>2</Box>
+                      <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.01em' }}>
+                        {t("teachers.subjectAssignment")}
+                      </Typography>
+                    </Box>
 
-                      return (
-                        <Button
-                          key={cls.classId}
-                          onClick={() => toggleClassSelection(cls.classId)}
-                          aria-pressed={isSelected}
-                          aria-label={`${t("students.class")} ${cls.className}`}
-                          sx={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: "50%",
-                            backgroundColor: isSelected ? theme.palette.text.primary : theme.palette.primary.main,
-                            color: isSelected ? theme.palette.primary.main : theme.palette.primary.contrastText,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 700,
-                            transition: "0.2s",
-                            border: isSelected ? `2px solid ${theme.palette.primary.main}` : "none",
-                            "&:hover": { transform: "scale(1.1)" },
-                            minWidth: 44,
-                          }}
+                    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: 'center' }}>
+                      <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 220 }, minWidth: 180 }}>
+                        <InputLabel>{t("students.academicYear")}</InputLabel>
+                        <Select
+                          label={t("students.academicYear")}
+                          value={selectedYear}
+                          onChange={(e) => setSelectedYear(e.target.value)}
+                          sx={{ borderRadius: 2 }}
                         >
-                          {cls.className}
-                        </Button>
-                      );
-                    })
-                  )}
+                          <MenuItem value="2024-2025">2024-2025</MenuItem>
+                          <MenuItem value="2025-2026">2025-2026</MenuItem>
+                          <MenuItem value="2026-2027">2026-2027</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      <FormControl fullWidth size="small" sx={{ maxWidth: { xs: "100%", sm: 220 }, minWidth: 180 }}>
+                        <InputLabel>{t("teachers.subject")}</InputLabel>
+                        <Select
+                          label={t("teachers.subject")}
+                          value={selectedSubjectId}
+                          onChange={(e) => setSelectedSubjectId(e.target.value)}
+                          disabled={isLoadingSubjects || !selectedYear}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          {isLoadingSubjects ? (
+                            <MenuItem disabled>
+                              <LoadingRegion />
+                            </MenuItem>
+                          ) : subjects.length === 0 ? (
+                            <MenuItem disabled>{t("teachers.noSubjectsAvailable", "No subjects available")}</MenuItem>
+                          ) : (
+                            subjects.map((s) => (
+                              <MenuItem key={s.id} value={s.id}>
+                                {s.subjectName}
+                              </MenuItem>
+                            ))
+                          )}
+                        </Select>
+                      </FormControl>
+
+                      <AccessibleIconButton
+                        label={t("teachers.addSubject", "Add subject")}
+                        onClick={() => setOpenAddSubject(true)}
+                        sx={{
+                          backgroundColor: primary,
+                          color: theme.palette.primary.contrastText,
+                          borderRadius: '12px',
+                          "&:hover": { backgroundColor: theme.palette.primary.dark },
+                        }}
+                      >
+                        <AddIcon />
+                      </AccessibleIconButton>
+                    </Box>
+                  </Stack>
+                </Card>
+              </Box>
+
+              {/* Step 3 */}
+              <Box component={motion.div} variants={itemVariants}>
+                <Card sx={glassCardSx}>
+                  <Stack spacing={3}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: 'center' }}>
+                      <Box sx={badgeSx}>3</Box>
+                      <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: '-0.01em' }}>
+                        {t("teachers.assignClasses")}
+                      </Typography>
+                    </Box>
+
+                    {isLoadingClasses ? (
+                      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                        <CircularProgress color="primary" />
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                        {classes.length === 0 ? (
+                          <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                            {t("teachers.noClassesForYear")}
+                          </Typography>
+                        ) : (
+                          classes.map((cls) => {
+                            const isSelected = selectedClassIds.includes(cls.classId);
+
+                            return (
+                              <Button
+                                component={motion.button}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                                key={cls.classId}
+                                onClick={() => toggleClassSelection(cls.classId)}
+                                aria-pressed={isSelected}
+                                aria-label={`${t("students.class")} ${cls.className}`}
+                                sx={{
+                                  width: 50,
+                                  height: 50,
+                                  borderRadius: "16px",
+                                  backgroundColor: isSelected ? primary : alpha(theme.palette.background.default, 0.5),
+                                  color: isSelected ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontWeight: 800,
+                                  fontSize: '1.1rem',
+                                  transition: "background-color 0.3s, color 0.3s",
+                                  border: isSelected ? `none` : `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                                  boxShadow: isSelected ? `0 8px 20px ${alpha(primary, 0.4)}` : 'none',
+                                  minWidth: 50,
+                                }}
+                              >
+                                {cls.className}
+                              </Button>
+                            );
+                          })
+                        )}
+                      </Box>
+                    )}
+                  </Stack>
+                </Card>
+              </Box>
+            </Stack>
+
+            {/* Error and Success Messages */}
+            <AnimatePresence>
+              {fetchError && (
+                <Box component={motion.div} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                  <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }} onClose={() => setFetchError(null)}>
+                    {fetchError}
+                  </Alert>
                 </Box>
               )}
-            </Stack>
-          </Card>
-          {/* Error and Success Messages */}
-          {fetchError && (
-            <Alert severity="error" sx={{ mt: 2 }} onClose={() => setFetchError(null)}>
-              {fetchError}
-            </Alert>
-          )}
-          {assignmentError && (
-            <Alert severity="error" sx={{ mt: 2 }} onClose={() => setAssignmentError(null)}>
-              {assignmentError}
-            </Alert>
-          )}
-          {assignmentSuccess && (
-            <Alert severity="success" sx={{ mt: 2 }} onClose={() => setAssignmentSuccess(false)}>
-              {t("teachers.assignedSuccess", "Teacher assigned successfully!")}
-            </Alert>
-          )}
-
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-            <Button
-              variant="contained"
-              size="large"
-              disabled={
-                (!selectedTeacherId && !pendingTeacherDraft) ||
-                !selectedSubjectId ||
-                selectedClassIds.length === 0 ||
-                isAssigningTeacher
-              }
-              onClick={handleAssignTeacher}
-              sx={{
-                backgroundColor: theme.palette.primary.main,
-                color: theme.palette.primary.contrastText,
-                px: { xs: 3, md: 6 },
-                py: 1.5,
-                fontWeight: 700,
-                textTransform: "none",
-                "&:hover": { backgroundColor: theme.palette.primary.dark },
-              }}
-            >
-              {isAssigningTeacher ? (
-                <>
-                  <CircularProgress size={20} sx={{ mr: 1 }} />
-                  {t("teachers.processing")}
-                </>
-              ) : (
-                t("teachers.createAndAssignTeacher")
+              {assignmentError && (
+                <Box component={motion.div} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                  <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }} onClose={() => setAssignmentError(null)}>
+                    {assignmentError}
+                  </Alert>
+                </Box>
               )}
-            </Button>
+              {assignmentSuccess && (
+                <Box component={motion.div} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                  <Alert severity="success" sx={{ mt: 2, borderRadius: 2 }} onClose={() => setAssignmentSuccess(false)}>
+                    {t("teachers.assignedSuccess", "Teacher assigned successfully!")}
+                  </Alert>
+                </Box>
+              )}
+            </AnimatePresence>
+
+            <Box component={motion.div} variants={itemVariants} sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+              <Button
+                component={motion.button}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                variant="contained"
+                size="large"
+                disabled={
+                  (!selectedTeacherId && !pendingTeacherDraft) ||
+                  !selectedSubjectId ||
+                  selectedClassIds.length === 0 ||
+                  isAssigningTeacher
+                }
+                onClick={handleAssignTeacher}
+                sx={{
+                  background: `linear-gradient(45deg, ${primary}, ${secondary})`,
+                  color: theme.palette.primary.contrastText,
+                  px: { xs: 4, md: 8 },
+                  py: 2,
+                  fontWeight: 800,
+                  fontSize: '1.2rem',
+                  borderRadius: '16px',
+                  boxShadow: `0 8px 24px ${alpha(primary, 0.4)}`,
+                  textTransform: "none",
+                }}
+              >
+                {isAssigningTeacher ? (
+                  <>
+                    <CircularProgress size={24} sx={{ mr: 2, color: 'inherit' }} />
+                    {t("teachers.processing")}
+                  </>
+                ) : (
+                  t("teachers.createAndAssignTeacher")
+                )}
+              </Button>
+            </Box>
           </Box>
-          </Box>
-        
-          
         </Stack>
 
         {/* Add Teacher Modal */}
-        <Dialog open={openAddTeacher} onClose={handleCloseTeacherDialog} fullWidth maxWidth="sm">
-          <DialogTitle>
+        <Dialog open={openAddTeacher} onClose={handleCloseTeacherDialog} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
+          <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
             {t("teachers.addNewTeacher")}
             <AccessibleIconButton
               label={t("common.closeMenu")}
               onClick={handleCloseTeacherDialog}
-              sx={{ float: "right" }}
+              sx={{ float: "right", bgcolor: alpha(theme.palette.text.primary, 0.05) }}
             >
               <CloseIcon />
             </AccessibleIconButton>
           </DialogTitle>
 
           <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1, minWidth: { xs: 0, sm: 400 } }}>
+            <Stack spacing={2.5} sx={{ mt: 1, minWidth: { xs: 0, sm: 400 } }}>
               {/* Success Message */}
               {teacherSuccess && (
-                <Alert severity="success">
+                <Alert severity="success" sx={{ borderRadius: 2 }}>
                   {t("teachers.addedSuccess", "Teacher added successfully!")}
                 </Alert>
               )}
 
               {/* Error Message */}
               {teacherError && (
-                <Alert severity="error">{teacherError}</Alert>
+                <Alert severity="error" sx={{ borderRadius: 2 }}>{teacherError}</Alert>
               )}
 
               <TextField
@@ -806,6 +852,7 @@ export default function ViceTeachersPage() {
                 }
                 required
                 fullWidth
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
               <TextField
                 label={t("modal.middleNameOptional")}
@@ -815,6 +862,7 @@ export default function ViceTeachersPage() {
                   setTeacherForm({ ...teacherForm, middleName: e.target.value })
                 }
                 fullWidth
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
               <TextField
                 label={t("modal.lastName")}
@@ -825,6 +873,7 @@ export default function ViceTeachersPage() {
                 }
                 required
                 fullWidth
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
               <TextField
                 label={t("modal.email")}
@@ -836,6 +885,7 @@ export default function ViceTeachersPage() {
                 }
                 required
                 fullWidth
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
               <TextField
                 label={t("modal.phone")}
@@ -848,6 +898,7 @@ export default function ViceTeachersPage() {
                 required
                 fullWidth
                 helperText={t("teachers.phoneLength", "Enter phone number (8-15 digits)")}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
               <TextField
                 label={t("teachers.qualifications", "Qualifications")}
@@ -862,6 +913,7 @@ export default function ViceTeachersPage() {
                 multiline
                 rows={3}
                 fullWidth
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
               <TextField
                 label={t("students.department")}
@@ -875,6 +927,7 @@ export default function ViceTeachersPage() {
                 }
                 required
                 fullWidth
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
 
               <Button
@@ -884,14 +937,17 @@ export default function ViceTeachersPage() {
                 fullWidth
                 sx={{
                   mt: 2,
-                  backgroundColor: theme.palette.primary.main,
+                  background: `linear-gradient(45deg, ${primary}, ${secondary})`,
                   color: theme.palette.primary.contrastText,
-                  "&:hover": { backgroundColor: theme.palette.primary.dark },
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  py: 1.5,
+                  boxShadow: `0 4px 14px ${alpha(primary, 0.4)}`,
                 }}
               >
                 {isSavingTeacher ? (
                   <>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    <CircularProgress size={20} sx={{ mr: 1, color: 'inherit' }} />
                     {t("modal.saving")}
                   </>
                 ) : (
@@ -903,26 +959,27 @@ export default function ViceTeachersPage() {
         </Dialog>
 
         {/* Add Subject Modal */}
-        <Dialog open={openAddSubject} onClose={() => setOpenAddSubject(false)} fullWidth maxWidth="sm">
-          <DialogTitle>
+        <Dialog open={openAddSubject} onClose={() => setOpenAddSubject(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
+          <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
             {t("teachers.addSubject", "Add New Subject")}
             <AccessibleIconButton
               label={t("common.closeMenu")}
               onClick={() => setOpenAddSubject(false)}
-              sx={{ float: "right" }}
+              sx={{ float: "right", bgcolor: alpha(theme.palette.text.primary, 0.05) }}
             >
               <CloseIcon />
             </AccessibleIconButton>
           </DialogTitle>
 
           <DialogContent>
-            <Stack spacing={2}>
+            <Stack spacing={3} sx={{ mt: 1 }}>
               <TextField
                 placeholder={t("teachers.subjectName", "Subject name")}
                 onChange={(e) => setSubjectName(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
 
-              <Alert severity="info">
+              <Alert severity="info" sx={{ borderRadius: 2 }}>
                 {t("teachers.subjectForYear", "Subject will be created for stage/year:")} <b>{selectedYear || t("common.notSelected")}</b>
               </Alert>
 
@@ -934,13 +991,13 @@ export default function ViceTeachersPage() {
               >
                 <FormControlLabel
                   value="academic"
-                  control={<Radio />}
-                  label={t("teachers.academicSubject", "Academic Subject")}
+                  control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} />}
+                  label={<Typography fontWeight={600}>{t("teachers.academicSubject", "Academic Subject")}</Typography>}
                 />
                 <FormControlLabel
                   value="competency"
-                  control={<Radio />}
-                  label={t("teachers.competencyJadarat", "Competency (Jadarat)")}
+                  control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} />}
+                  label={<Typography fontWeight={600}>{t("teachers.competencyJadarat", "Competency (Jadarat)")}</Typography>}
                 />
               </RadioGroup>
 
@@ -948,10 +1005,12 @@ export default function ViceTeachersPage() {
                 variant="contained"
                 onClick={handleSaveSubject}
                 sx={{
-                  backgroundColor: theme.palette.primary.main,
+                  background: `linear-gradient(45deg, ${primary}, ${secondary})`,
                   color: theme.palette.primary.contrastText,
-                  textTransform: "none",
-                  "&:hover": { backgroundColor: theme.palette.primary.dark },
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  py: 1.5,
+                  boxShadow: `0 4px 14px ${alpha(primary, 0.4)}`,
                 }}
               >
                 {t("teachers.saveSubject", "Save Subject")}
@@ -959,12 +1018,13 @@ export default function ViceTeachersPage() {
             </Stack>
           </DialogContent>
         </Dialog>
+
       </Container>
 
-      <Dialog open={openTeachersList} onClose={() => setOpenTeachersList(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
+      <Dialog open={openTeachersList} onClose={() => setOpenTeachersList(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
+        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>
           {t("teachers.teachersList")}
-          <AccessibleIconButton label={t("common.closeMenu")} onClick={() => setOpenTeachersList(false)} sx={{ float: "right" }}>
+          <AccessibleIconButton label={t("common.closeMenu")} onClick={() => setOpenTeachersList(false)} sx={{ float: "right", bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
             <CloseIcon />
           </AccessibleIconButton>
         </DialogTitle>
@@ -972,31 +1032,28 @@ export default function ViceTeachersPage() {
           <Button
             variant="outlined"
             onClick={loadTeachers}
-            sx={{ mb: 2, textTransform: "none", borderColor: theme.palette.divider, color: theme.palette.text.primary }}
+            sx={{ mb: 3, textTransform: "none", borderColor: theme.palette.divider, color: theme.palette.text.primary, borderRadius: '12px', fontWeight: 600 }}
           >
             {t("common.refresh")}
           </Button>
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: `1px solid ${alpha(theme.palette.divider, 0.2)}`, bgcolor: 'transparent' }}>
             <Table size="small">
-              <caption style={{ textAlign: "left", padding: "8px 16px", fontWeight: 600 }}>
-                {t("teachers.teachersList")}
-              </caption>
-              <TableHead>
+              <TableHead sx={{ backgroundColor: alpha(primary, 0.1) }}>
                 <TableRow>
-                  <TableCell>{t("teachers.id")}</TableCell>
-                  <TableCell>{t("teachers.name")}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{t("teachers.id")}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{t("teachers.name")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {teachers.map((t) => (
-                  <TableRow key={t.id}>
+                  <TableRow key={t.id} sx={{ '&:hover': { bgcolor: alpha(primary, 0.05) }, transition: 'background-color 0.2s' }}>
                     <TableCell>{t.id}</TableCell>
-                    <TableCell>{t.fullName}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t.fullName}</TableCell>
                   </TableRow>
                 ))}
                 {teachers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2}>{t("teachers.noTeachersAvailable")}</TableCell>
+                    <TableCell colSpan={2} align="center" sx={{ py: 3, color: 'text.secondary', fontWeight: 500 }}>{t("teachers.noTeachersAvailable")}</TableCell>
                   </TableRow>
                 )}
               </TableBody>
