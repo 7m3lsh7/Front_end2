@@ -841,6 +841,7 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 **Response (200):**
 ```json
 {
+  "status": "draft", // "draft" | "locked"
   "maxQuarterGrades": { "q1": 25, "q2": 25, "q3": 25, "q4": 25 },
   "students": [
     { "studentId": "st1", "studentName": "Ahmed", "q1": 20, "q2": 19, "q3": 18, "q4": 22 }
@@ -853,6 +854,31 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 
 ### 19. GET `/api/vice/grades/final/students`
 **Purpose:** Load final grades table by `level + semester + filters`.
+**Response (200):**
+```json
+{
+  "status": "draft", // "draft" | "submitted" | "approved"
+  "students": [
+    { "studentId": "s1", "studentName": "Ahmed", "score": 85 }
+  ]
+}
+```
+
+### 19.1 POST `/api/admin/grades/final/approve`
+**Purpose:** Admin approves and permanently locks the final grades for a given level/semester/department.
+**Request Body:**
+```json
+{
+  "level": "junior",
+  "semester": 1,
+  "department": "OM",
+  "classId": "1" // Optional
+}
+```
+**Response (200):**
+```json
+{ "message": "Grades locked successfully" }
+```
 
 ### 20. PUT `/api/vice/grades/final/students`
 **Purpose:** Save/update final grades in bulk.
