@@ -210,7 +210,7 @@ function ComparisonChart({ subjects, selected }: { subjects: SubjectProgress[]; 
 export default function GradeProgressPage() {
   const theme = useTheme();
   const primary = theme.palette.primary.main;
-  const { year } = useStudentYear();
+  const { displayYear: year } = useStudentYear();
   const [loading, setLoading] = useState(true);
   const [subjects, setSubjects] = useState<SubjectProgress[]>([]);
   const [selected, setSelected] = useState<string[]>([]);

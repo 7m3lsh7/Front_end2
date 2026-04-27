@@ -16,7 +16,7 @@ import { UserRole } from "@/context/AuthContext";
 export function getRedirectPathByRole(role: UserRole): string {
     switch (role) {
         case "Admin":
-            return "/admin";
+            return "/vice/grades";
 
         case "Teacher":
             return "/teacher";

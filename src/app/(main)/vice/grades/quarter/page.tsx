@@ -1,92 +1,208 @@
 'use client';
 
 import React from 'react';
-import { Box, Container, Typography, Stack, Card, CardActionArea, IconButton } from '@mui/material';
+import { Box, Container, Typography, Stack, Card, alpha, Chip } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { motion } from 'framer-motion';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Link from 'next/link';
 
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 90, damping: 15 } },
+};
+
+const LEVELS = [
+    { id: 'junior',   label: 'Junior',   emoji: '🌱', color: '#F59E0B', description: 'First academic year — foundational studies' },
+    { id: 'wheeler',  label: 'Wheeler',  emoji: '⚡', color: '#06B6D4', description: 'Second academic year — intermediate coursework' },
+    { id: 'senior',   label: 'Senior',   emoji: '🎓', color: '#8B5CF6', description: 'Third academic year — advanced curriculum' },
+];
+
 export default function ViceGradesQuarterPage() {
-    const levels = [
-        { id: 1, name: 'Junior' },
-        { id: 2, name: 'Wheeler' },
-        { id: 3, name: 'Senior' },
-    ];
+    const theme = useTheme();
+    const primary = theme.palette.primary.main;
 
     return (
-        <Box sx={{ position: 'relative', minHeight: '100vh', paddingBottom: 4 }}>
-            <Box sx={{ py: 4, position: 'relative' }}>
-                <Container maxWidth="lg">
-                    <Box sx={{ mb: 6, display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <IconButton component={Link} href="/vice/grades" sx={{ color: 'black' }}>
-                            <ArrowBackIcon />
-                        </IconButton>
-                        <Typography variant="h3" fontWeight="bold" sx={{ color: '#000' }}>
-                            Quarter Grades
-                        </Typography>
+        <Box
+            sx={{
+                position: 'relative',
+                minHeight: '100vh',
+                bgcolor: theme.palette.background.default,
+                overflow: 'hidden',
+                py: { xs: 3, md: 5 },
+            }}
+        >
+            {/* Blobs */}
+            <Box
+                component={motion.div}
+                animate={{ scale: [1, 1.08, 1], rotate: [0, 10, 0] }}
+                transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
+                sx={{
+                    position: 'absolute', top: '-10%', right: '-5%',
+                    width: '55%', height: '55%',
+                    background: `radial-gradient(circle, ${alpha(primary, 0.16)}, transparent 65%)`,
+                    zIndex: 0, pointerEvents: 'none',
+                }}
+            />
+            <Box
+                component={motion.div}
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+                sx={{
+                    position: 'absolute', bottom: '0%', left: '-5%',
+                    width: '45%', height: '45%',
+                    background: `radial-gradient(circle, ${alpha('#8B5CF6', 0.1)}, transparent 65%)`,
+                    zIndex: 0, pointerEvents: 'none',
+                }}
+            />
+
+            <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+                <Box
+                    component={motion.div}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                >
+                    {/* Header */}
+                    <Box component={motion.div} variants={itemVariants} sx={{ mb: 5 }}>
+                        <Link
+                            href="/vice/grades"
+                            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 24 }}
+                        >
+                            <Box
+                                component={motion.div}
+                                whileHover={{ x: -4 }}
+                                sx={{
+                                    display: 'flex', alignItems: 'center', gap: 1,
+                                    color: theme.palette.text.secondary,
+                                    fontWeight: 600, fontSize: '0.9rem',
+                                    transition: 'color 0.2s',
+                                    '&:hover': { color: primary },
+                                }}
+                            >
+                                <ArrowBackIcon fontSize="small" />
+                                <Typography variant="body2" fontWeight={600} color="inherit">Back to Dashboard</Typography>
+                            </Box>
+                        </Link>
+
+                        <Stack direction="row" alignItems="center" gap={2}>
+                            <Box
+                                sx={{
+                                    width: 52, height: 52, borderRadius: '16px',
+                                    background: `linear-gradient(135deg, ${primary}, ${alpha(primary, 0.6)})`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    boxShadow: `0 8px 20px ${alpha(primary, 0.4)}`,
+                                }}
+                            >
+                                <AssignmentIcon sx={{ color: '#fff', fontSize: 26 }} />
+                            </Box>
+                            <Box>
+                                <Typography
+                                    variant="h3"
+                                    fontWeight={800}
+                                    sx={{
+                                        background: `linear-gradient(45deg, ${theme.palette.text.primary}, ${primary})`,
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        lineHeight: 1.1,
+                                    }}
+                                >
+                                    Quarter Grades
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" fontWeight={500} mt={0.5}>
+                                    Select an academic level to manage quarter grade entries
+                                </Typography>
+                            </Box>
+                        </Stack>
                     </Box>
 
-                    {/* Central Glass Card */}
-                    <Card
-                        sx={{
-                            backgroundImage: 'url(/Images/Frame.png)',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            borderRadius: '24px',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)'
-                        }}
-                    >
-                        <Box sx={{
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            backdropFilter: 'blur(20px)',
-                            p: { xs: 4, md: 8 },
-                        }}>
-                            <Stack spacing={3}>
-                                {levels.map((level, index) => (
+                    {/* Level Cards */}
+                    <Stack spacing={2.5}>
+                        {LEVELS.map((level, i) => (
+                            <Box
+                                key={level.id}
+                                component={motion.div}
+                                variants={itemVariants}
+                                custom={i}
+                            >
+                                <motion.div
+                                    whileHover={{ y: -5, boxShadow: `0 24px 56px ${alpha(level.color, 0.2)}` }}
+                                    style={{ display: 'block', borderRadius: 24 }}
+                                >
+                                    <Link
+                                        href={`/vice/grades/quarter/${level.id}`}
+                                        style={{ textDecoration: 'none', display: 'block' }}
+                                    >
                                     <Card
-                                        key={level.id}
                                         sx={{
-                                            borderRadius: '12px',
-                                            backgroundColor: '#fff',
-                                            overflow: 'hidden',
-                                            transition: 'transform 0.2s',
-                                            '&:hover': {
-                                                transform: 'scale(1.02)',
-                                            }
+                                            p: 3.5,
+                                            borderRadius: '24px',
+                                            backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                                            backdropFilter: 'blur(20px)',
+                                            border: `1px solid ${alpha(level.color, 0.2)}`,
+                                            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.06)}`,
+                                            cursor: 'pointer',
+                                            transition: 'box-shadow 0.3s ease',
                                         }}
                                     >
-                                        <CardActionArea
-                                            component={Link}
-                                            href={`/vice/grades/quarter/${level.name.toLowerCase()}`}
-                                            sx={{ p: 2 }}
+                                    <Stack direction="row" alignItems="center" spacing={3}>
+                                        <Box
+                                            sx={{
+                                                width: 64, height: 64, borderRadius: '20px',
+                                                background: `linear-gradient(135deg, ${level.color}, ${alpha(level.color, 0.5)})`,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: '1.8rem',
+                                                boxShadow: `0 8px 24px ${alpha(level.color, 0.4)}`,
+                                                flexShrink: 0,
+                                            }}
                                         >
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                                <Box sx={{
-                                                    width: 48,
-                                                    height: 48,
-                                                    backgroundColor: '#ffc107',
-                                                    borderRadius: '8px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                }}>
-                                                    <Typography variant="h5" fontWeight="bold" color="black">
-                                                        {index + 1}
-                                                    </Typography>
-                                                </Box>
+                                            {level.emoji}
+                                        </Box>
 
-                                                <Typography variant="h5" fontWeight="bold" color="black">
-                                                    {level.name}
+                                        <Box flex={1}>
+                                            <Stack direction="row" alignItems="center" gap={1.5} mb={0.5}>
+                                                <Typography variant="h5" fontWeight={800} color="text.primary">
+                                                    {level.label}
                                                 </Typography>
-                                            </Box>
-                                        </CardActionArea>
+                                                <Chip
+                                                    label="Quarter Grades"
+                                                    size="small"
+                                                    sx={{
+                                                        fontSize: '0.7rem', fontWeight: 700,
+                                                        bgcolor: alpha(level.color, 0.12),
+                                                        color: level.color,
+                                                        border: `1px solid ${alpha(level.color, 0.25)}`,
+                                                    }}
+                                                />
+                                            </Stack>
+                                            <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                                                {level.description}
+                                            </Typography>
+                                        </Box>
+
+                                        <Box
+                                            component={motion.div}
+                                            whileHover={{ x: 4 }}
+                                            sx={{ color: level.color, display: 'flex', alignItems: 'center' }}
+                                        >
+                                            <ArrowForwardIcon />
+                                        </Box>
+                                    </Stack>
                                     </Card>
-                                ))}
-                            </Stack>
-                        </Box>
-                    </Card>
-                </Container>
-            </Box>
+                                    </Link>
+                                </motion.div>
+                            </Box>
+                        ))}
+                    </Stack>
+                </Box>
+            </Container>
         </Box>
     );
 }

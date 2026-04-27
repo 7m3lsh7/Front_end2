@@ -156,7 +156,115 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## 👨‍🏫 Teachers Endpoints
+## 🎓 Student Role Endpoints
+
+All endpoints below require an authenticated user with **role: Student**. 
+
+### 4.1 GET `/api/student/cards`
+**Purpose:** Returns the list of dashboard cards (e.g. Quarter Grades, Final Grades, Competencies) for the student dashboard.
+**Authentication:** Required (JWT Bearer token - Student role)
+**Response (Success - 200):** Array of card objects.
+
+### 4.2 GET `/api/student/profile`
+**Purpose:** Returns the current student’s profile for the dashboard header (name, year label, subtitle).
+**Authentication:** Required (JWT Bearer token - Student role)
+**Response (Success - 200):**
+```json
+{
+  "name": "Ahmed",
+  "year": "Year 2",
+  "subtitle": "Your academic overview",
+  "currentAcademicYear": "senior"
+}
+```
+
+### 4.3 GET `/api/student/years`
+**Purpose:** Returns the list of academic years available for selection (e.g. Junior, Wheeler, Senior).
+**Authentication:** Required (JWT Bearer token - Student role)
+**Response (Success - 200):** Array of year options `[{ "id": "junior", "number": "1", "title": "Junior" }, ...]`.
+
+### 4.4 GET `/api/student/grades/quarter?year={year}`
+**Purpose:** Returns quarter grades for the given academic year.
+**Authentication:** Required (JWT Bearer token - Student role)
+**Response (Success - 200):**
+```json
+{
+  "grades": [
+    { "subject": "Mathematics", "yourGrade": 25, "quarterGrade": 25 }
+  ],
+  "year": "senior"
+}
+```
+
+### 4.5 GET `/api/student/grades/final?year={year}`
+**Purpose:** Returns final exam grades for the given academic year.
+**Authentication:** Required (JWT Bearer token - Student role)
+**Response (Success - 200):** Same shape as quarter grades.
+
+### 4.6 GET `/api/student/grades/jadarat?year={year}`
+**Purpose:** Returns competencies (Jadarat) grades for the given academic year.
+**Authentication:** Required (JWT Bearer token - Student role)
+**Response (Success - 200):**
+```json
+{
+  "grades": [
+    { "Jadarat": "API", "Your_Attemps": "Fail", "Attemps": "Attemp-one" }
+  ],
+  "year": "senior"
+}
+```
+
+### 4.7 GET `/api/student/grades/progress?year={year}`
+**Purpose:** Returns progress metrics/charts data for the given academic year.
+**Authentication:** Required (JWT Bearer token - Student role)
+**Response (Success - 200):** Progress data array.
+
+---
+
+## 👨‍🏫 Teacher Role Endpoints (For Logged In Teacher)
+
+All endpoints below require an authenticated user with **role: Teacher**.
+
+### 4.8 GET `/api/teacher/profile`
+**Purpose:** Returns the current teacher's profile for the dashboard header.
+**Authentication:** Required (JWT Bearer token - Teacher role)
+**Response (Success - 200):**
+```json
+{
+  "name": "Ahmed Karim",
+  "subtitle": "Mathematics Teacher",
+  "currentAcademicYear": "senior"
+}
+```
+
+### 4.9 GET `/api/teacher/subjects`
+**Purpose:** Returns the list of subjects taught by the teacher, grouped by academic year.
+**Authentication:** Required (JWT Bearer token - Teacher role)
+
+### 4.10 GET `/api/teacher/classes?year={year}&subject={subject}`
+**Purpose:** Returns the list of classes for a given academic year and subject.
+**Authentication:** Required (JWT Bearer token - Teacher role)
+
+### 4.11 GET `/api/teacher/students?classId={classId}`
+**Purpose:** Returns the list of students in a given class, with their grades and pass/fail status.
+**Authentication:** Required (JWT Bearer token - Teacher role)
+
+### 4.12 POST `/api/teacher/grades`
+**Purpose:** Submit or update a student's grade for a class.
+**Authentication:** Required (JWT Bearer token - Teacher role)
+**Request Body:**
+```json
+{
+  "classId": 1,
+  "studentId": 3,
+  "grade": 22
+}
+```
+
+---
+
+## 👔 Admin / Vice Endpoints
+
 
 ### 5. GET `/api/Teachers`
 
@@ -706,8 +814,23 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 ### 15. DELETE `/api/vice/students/{studentId}`
 **Purpose:** Delete student.
 
-### 16. GET `/api/vice/grades/quarter/subjects?level={level}`
-**Purpose:** List subjects available for quarter grades by level.
+### 16. GET `/api/Subjects`
+**Purpose:** List subjects available (Returns the actual DB subjects added during teacher creation, filtered by year/level if needed).
+
+### 16.1 PUT `/api/vice/grades/quarter/subjects/{subjectId}/max-grades`
+**Purpose:** Vice Principal sets the Maximum Final Grade for the 4 quarters for a specific subject.
+
+**Request Body:**
+```json
+{
+  "maxQuarterGrades": {
+    "q1": 25,
+    "q2": 25,
+    "q3": 25,
+    "q4": 25
+  }
+}
+```
 
 ### 17. GET `/api/vice/grades/quarter/students`
 **Purpose:** Load quarter grade sheet with filters.
@@ -718,6 +841,7 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 **Response (200):**
 ```json
 {
+  "status": "draft", // "draft" | "locked"
   "maxQuarterGrades": { "q1": 25, "q2": 25, "q3": 25, "q4": 25 },
   "students": [
     { "studentId": "st1", "studentName": "Ahmed", "q1": 20, "q2": 19, "q3": 18, "q4": 22 }
@@ -730,6 +854,31 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 
 ### 19. GET `/api/vice/grades/final/students`
 **Purpose:** Load final grades table by `level + semester + filters`.
+**Response (200):**
+```json
+{
+  "status": "draft", // "draft" | "submitted" | "approved"
+  "students": [
+    { "studentId": "s1", "studentName": "Ahmed", "score": 85 }
+  ]
+}
+```
+
+### 19.1 POST `/api/admin/grades/final/approve`
+**Purpose:** Admin approves and permanently locks the final grades for a given level/semester/department.
+**Request Body:**
+```json
+{
+  "level": "junior",
+  "semester": 1,
+  "department": "OM",
+  "classId": "1" // Optional
+}
+```
+**Response (200):**
+```json
+{ "message": "Grades locked successfully" }
+```
 
 ### 20. PUT `/api/vice/grades/final/students`
 **Purpose:** Save/update final grades in bulk.
@@ -752,6 +901,48 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 
 ### 22. GET `/api/vice/grades/final/history?studentId={id}&subjectId={id}`
 **Purpose:** View final grade edit/audit history.
+
+### 23. GET `/api/vice/grades/dashboard`
+**Purpose:** Returns summary statistics and recent activity for the Vice Grades Management Dashboard.
+
+**Authentication:** Required (StudentAffairs role)
+
+**Response (Success - 200):**
+```json
+{
+  "totalStudents": 320,
+  "totalSubjects": 18,
+  "quarterGradesPending": 42,
+  "finalGradesPending": 8,
+  "lastUpdated": "2026-04-25T10:30:00Z",
+  "recentActivity": [
+    {
+      "id": "a1",
+      "teacherName": "Mr. Ahmed Ali",
+      "action": "Submitted quarter grades",
+      "subject": "Mathematics",
+      "className": "10A",
+      "level": "senior",
+      "timestamp": "2026-04-25T09:00:00Z"
+    }
+  ]
+}
+```
+
+**Field Descriptions:**
+- `totalStudents` — Total number of registered students in the system
+- `totalSubjects` — Total number of subjects across all levels
+- `quarterGradesPending` — Number of student quarter grade entries not yet submitted by teachers
+- `finalGradesPending` — Number of student final grade entries not yet submitted
+- `lastUpdated` — ISO timestamp of last data refresh
+- `recentActivity` — Array of the last 10–20 grade-related teacher actions
+  - `id` — Unique activity log ID
+  - `teacherName` — Full name of the teacher who performed the action
+  - `action` — Description string (e.g. "Submitted quarter grades", "Updated final grades")
+  - `subject` — Subject name
+  - `className` — Class identifier (e.g. "10A")
+  - `level` — Academic level: `"junior"` | `"wheeler"` | `"senior"`
+  - `timestamp` — ISO timestamp of when the action occurred
 
 ## 📋 Summary
 
@@ -781,12 +972,24 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 | `/api/vice/grades/final/students` | PUT | ✅ | Save final grades |
 | `/api/vice/grades/final/submit` | POST | ✅ | Submit final grades |
 | `/api/vice/grades/final/history` | GET | ✅ | Final grades history |
+| `/api/vice/grades/dashboard` | GET | ✅ | Grades dashboard KPIs + recent activity |
 | `/api/analytics/overview` | GET | ✅ | KPIs + subject stats + class rankings |
 | `/api/rankings` | GET | ✅ | Student ranking list |
 | `/api/export` / `/api/student/grades` | GET | ✅ | Raw grade data for PDF |
 | `/api/notifications` | GET | ✅ | Notification list |
 | `/api/notifications/:id` | PATCH | ✅ | Mark notification as read |
 | `/api/student/grades/progress` | GET | ✅ | Grade progress data |
+| `/api/student/cards` | GET | ✅ | Dashboard cards for student |
+| `/api/student/profile` | GET | ✅ | Student name, year, subtitle |
+| `/api/student/years` | GET | ✅ | Academic years list |
+| `/api/student/grades/quarter` | GET | ✅ | Quarter grades for year |
+| `/api/student/grades/final` | GET | ✅ | Final grades for year |
+| `/api/student/grades/jadarat` | GET | ✅ | Jadarat (competencies) grades |
+| `/api/teacher/profile` | GET | ✅ | Teacher profile for header |
+| `/api/teacher/subjects` | GET | ✅ | List of subjects taught by teacher |
+| `/api/teacher/classes` | GET | ✅ | Classes for a subject in a year |
+| `/api/teacher/students` | GET | ✅ | Students within a class |
+| `/api/teacher/grades` | POST | ✅ | Submit a grade for a student |
 
 **Authentication Method:** All protected endpoints use `Authorization: Bearer <accessToken>` header.
 
@@ -815,4 +1018,84 @@ Core entities (`Teachers`, `Subjects`, `Classes`, `TeacherAssignments`) are alre
 
 ---
 
-**Last Updated:** 2026-04-25 03:17:37
+## 📦 Data Types (TypeScript)
+
+Reference types used by the frontend (for implementation or codegen):
+
+```ts
+// Auth
+interface LoginPayload {
+  username: string;
+  password: string;
+}
+
+interface AuthUser {
+  userId: number;
+  role: "Admin" | "Teacher" | "Student";
+}
+
+// Student cards
+interface StudentCardApi {
+  id: number;
+  title: string;
+  description: string;
+  route: string;
+}
+
+// Student profile
+interface StudentProfileResponse {
+  name: string;
+  year?: string;
+  subtitle?: string;
+  currentAcademicYear?: "junior" | "senior" | "wheeler";
+}
+
+// Years list
+interface YearOption {
+  id: "junior" | "senior" | "wheeler";
+  number: string;
+  title: string;
+}
+
+// Quarter / Final grades
+interface QuarterGradeRow {
+  subject: string;
+  yourGrade: number;
+  quarterGrade: number;
+}
+
+// Jadarat grades
+interface JadaratGradeRow {
+  Jadarat: string;
+  Your_Attemps: string;
+  Attemps: string;
+}
+
+// Teacher subjects
+interface TeacherSubject {
+  id: number;
+  title: string;
+  subjectName: string;
+  year: "junior" | "wheeler" | "senior";
+  route?: string;
+}
+
+// Teacher profile
+interface TeacherProfileResponse {
+  name: string;
+  subtitle?: string;
+  currentAcademicYear?: "junior" | "wheeler" | "senior";
+}
+
+// Teacher classes
+interface TeacherClass {
+  id: number | string;
+  className: string;
+  studentCount?: number;
+  lastModified?: string;
+}
+```
+
+---
+
+**Last Updated:** 2026-04-25 04:32:00

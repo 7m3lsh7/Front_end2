@@ -1,192 +1,596 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Alert, Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, IconButton } from '@mui/material';
-import SchoolIcon from '@mui/icons-material/School';
+import React, { Suspense, useEffect, useState, useCallback } from 'react';
+import {
+    Box, Container, Typography, Stack, Card, alpha, Chip, Skeleton,
+    Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
+    Button, TextField, RadioGroup, FormControlLabel, Radio, Divider,
+    Alert, Snackbar, CircularProgress, IconButton
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { motion, AnimatePresence } from 'framer-motion';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useParams } from 'next/navigation';
+import SchoolIcon from '@mui/icons-material/School';
+import SaveIcon from '@mui/icons-material/Save';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import Link from 'next/link';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
-export default function QuarterGradesDashboard() {
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface MaxQuarterGrades {
+    q1: number;
+    q2: number;
+    q3: number;
+    q4: number;
+}
+
+interface StudentQuarterGrade {
+    studentId: string;
+    studentName: string;
+    studentCode?: string;
+    q1: number | null;
+    q2: number | null;
+    q3: number | null;
+    q4: number | null;
+}
+
+interface QuarterGradesResponse {
+    maxQuarterGrades: MaxQuarterGrades;
+    students: StudentQuarterGrade[];
+    classes?: string[];
+}
+
+// ─── Meta ────────────────────────────────────────────────────────────────────
+
+const LEVEL_META: Record<string, { color: string; emoji: string }> = {
+    junior:  { color: '#F59E0B', emoji: '🌱' },
+    wheeler: { color: '#06B6D4', emoji: '⚡' },
+    senior:  { color: '#8B5CF6', emoji: '🎓' },
+};
+
+// ─── Item Variants ────────────────────────────────────────────────────────────
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 90, damping: 15 } },
+};
+
+// ─── Content ──────────────────────────────────────────────────────────────────
+
+function QuarterSubjectGradesContent() {
+    const theme = useTheme();
     const params = useParams();
-    // Default to URL param when available
+
     const level = typeof params?.level === 'string' ? params.level : 'junior';
-    const subject = typeof params?.subject === 'string' ? decodeURIComponent(params.subject) : 'Subject';
+    const subjectId = typeof params?.subject === 'string' ? decodeURIComponent(params.subject) : 'subject';
+    const meta = LEVEL_META[level] ?? { color: '#F59E0B', emoji: '📚' };
+    const primaryColor = meta.color;
 
-    const [levelFilter, setLevelFilter] = useState(level);
-    const [departmentFilter, setDepartmentFilter] = useState('om');
-    const [classFilter, setClassFilter] = useState('class1');
+    const [department, setDepartment] = useState('om');
+    const [classId, setClassId] = useState('all');
+    const [availableClasses, setAvailableClasses] = useState<string[]>([]);
 
-    const students: Array<{ id: string; name: string; q1: number; q2: number; q3: number; q4: number }> = [];
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'Admin';
+
+    const [maxGrades, setMaxGrades] = useState<MaxQuarterGrades>({ q1: 25, q2: 25, q3: 25, q4: 25 });
+    const [originalMaxGrades, setOriginalMaxGrades] = useState<MaxQuarterGrades>({ q1: 25, q2: 25, q3: 25, q4: 25 });
+    const [students, setStudents] = useState<StudentQuarterGrade[]>([]);
+    const [localGrades, setLocalGrades] = useState<Record<string, { q1: number|null; q2: number|null; q3: number|null; q4: number|null }>>({});
+    
+    const [loading, setLoading] = useState(true);
+    const [savingMax, setSavingMax] = useState(false);
+    const [savingStudents, setSavingStudents] = useState(false);
+    const [snack, setSnack] = useState<{ open: boolean; msg: string; severity: 'success' | 'error' | 'warning' }>({
+        open: false, msg: '', severity: 'success',
+    });
+
+    const API = process.env.NEXT_PUBLIC_API_URL || 'https://evaschool.runasp.net/api';
+    const getToken = () => (typeof window !== 'undefined' ? sessionStorage.getItem('accessToken') : null);
+
+    const loadData = useCallback(() => {
+        setLoading(true);
+        const token = getToken();
+        fetch(`${API}/vice/grades/quarter/students?level=${level}&subjectId=${subjectId}&department=${department}&classId=${classId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            credentials: 'include',
+        })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data: QuarterGradesResponse | null) => {
+                if (data) {
+                    if (data.maxQuarterGrades) {
+                        setMaxGrades(data.maxQuarterGrades);
+                        setOriginalMaxGrades(data.maxQuarterGrades);
+                    }
+                    const list = data.students ?? [];
+                    setStudents(list);
+                    setAvailableClasses(data.classes ?? []);
+                    
+                    const initial: Record<string, any> = {};
+                    list.forEach((s) => { initial[s.studentId] = { q1: s.q1, q2: s.q2, q3: s.q3, q4: s.q4 }; });
+                    setLocalGrades(initial);
+                } else {
+                    throw new Error('Fallback to mock');
+                }
+            })
+            .catch(() => {
+                // Mock data while backend is being integrated
+                const mockMax = { q1: 25, q2: 25, q3: 25, q4: 25 };
+                setMaxGrades(mockMax);
+                setOriginalMaxGrades(mockMax);
+                const mockList: StudentQuarterGrade[] = [
+                    { studentId: 's1', studentName: 'Ahmed Ali Mohammed', studentCode: 'STU001', q1: 20, q2: null, q3: null, q4: null },
+                    { studentId: 's2', studentName: 'Sara Hassan Ibrahim', studentCode: 'STU002', q1: null, q2: null, q3: null, q4: null },
+                    { studentId: 's3', studentName: 'Khalid Omar Nasser', studentCode: 'STU003', q1: 22, q2: 21, q3: null, q4: null },
+                ];
+                setStudents(mockList);
+                setAvailableClasses(['Class 1', 'Class 2', 'Class 3']);
+                const initial: Record<string, any> = {};
+                mockList.forEach((s) => { initial[s.studentId] = { q1: s.q1, q2: s.q2, q3: s.q3, q4: s.q4 }; });
+                setLocalGrades(initial);
+            })
+            .finally(() => setLoading(false));
+    }, [level, subjectId, department, classId, API]);
+
+    useEffect(() => { loadData(); }, [loadData]);
+
+    const handleSaveMaxGrades = async () => {
+        setSavingMax(true);
+        const token = getToken();
+        try {
+            const r = await fetch(`${API}/vice/grades/quarter/subjects/${subjectId}/max-grades`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: 'include',
+                body: JSON.stringify({ maxQuarterGrades: maxGrades }),
+            });
+            if (r.ok) {
+                setOriginalMaxGrades(maxGrades);
+                setSnack({ open: true, msg: 'Maximum grades updated successfully!', severity: 'success' });
+            } else {
+                setSnack({ open: true, msg: 'Failed to update maximum grades.', severity: 'error' });
+            }
+        } catch {
+            setSnack({ open: true, msg: 'Network error. Please try again.', severity: 'error' });
+        } finally {
+            setSavingMax(false);
+        }
+    };
+
+    const handleSaveStudents = async () => {
+        setSavingStudents(true);
+        const token = getToken();
+        
+        // Prepare payload with only modified students
+        const payload = Object.entries(localGrades).map(([studentId, grades]) => ({
+            studentId,
+            ...grades
+        }));
+
+        try {
+            const r = await fetch(`${API}/vice/grades/quarter/students`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    level,
+                    subjectId,
+                    department,
+                    grades: payload
+                }),
+            });
+            if (r.ok) {
+                setSnack({ open: true, msg: 'Student quarter grades saved successfully!', severity: 'success' });
+                // Re-sync local state with students array
+                setStudents(prev => prev.map(s => ({ ...s, ...localGrades[s.studentId] })));
+            } else {
+                setSnack({ open: true, msg: 'Failed to save student grades.', severity: 'error' });
+            }
+        } catch {
+            setSnack({ open: true, msg: 'Network error. Please try again.', severity: 'error' });
+        } finally {
+            setSavingStudents(false);
+        }
+    };
+
+    const levelLabel = level.charAt(0).toUpperCase() + level.slice(1);
+    const subjectLabel = subjectId.charAt(0).toUpperCase() + subjectId.slice(1);
+
+    const isMaxGradesChanged = JSON.stringify(maxGrades) !== JSON.stringify(originalMaxGrades);
 
     return (
-        <Box sx={{ position: 'relative', minHeight: '100vh', backgroundColor: '#000' }}>
-            {/* Background Image / Overlay */}
-            <Box sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255, 193, 7, 0.05) 20px, rgba(255, 193, 7, 0.05) 21px)',
-                zIndex: 0,
-                pointerEvents: 'none'
-            }} />
+        <Box
+            sx={{
+                position: 'relative',
+                minHeight: '100vh',
+                bgcolor: theme.palette.background.default,
+                overflow: 'hidden',
+                py: { xs: 3, md: 5 },
+            }}
+        >
+            {/* Blobs */}
+            <Box
+                component={motion.div}
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
+                sx={{
+                    position: 'absolute', top: '-10%', right: '-5%',
+                    width: '50%', height: '50%',
+                    background: `radial-gradient(circle, ${alpha(primaryColor, 0.14)}, transparent 65%)`,
+                    zIndex: 0, pointerEvents: 'none',
+                }}
+            />
 
-            <Box sx={{ py: 4, position: 'relative', zIndex: 1 }}>
-                <Container maxWidth="xl">
+            <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
+                <Box
+                    component={motion.div}
+                    initial="hidden"
+                    animate="visible"
+                    variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } }}
+                >
+                    {/* Header */}
+                    <Box component={motion.div} variants={itemVariants} sx={{ mb: 4 }}>
+                        <Link
+                            href={`/vice/grades/quarter/${level}`}
+                            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 20 }}
+                        >
+                            <Box
+                                component={motion.div}
+                                whileHover={{ x: -4 }}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 1, color: theme.palette.text.secondary }}
+                            >
+                                <ArrowBackIcon fontSize="small" />
+                                <Typography variant="body2" fontWeight={600} color="inherit">Back to Subjects</Typography>
+                            </Box>
+                        </Link>
+
+                        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={2}>
+                            <Stack direction="row" alignItems="center" gap={2}>
+                                <Box
+                                    sx={{
+                                        width: 52, height: 52, borderRadius: '16px', flexShrink: 0,
+                                        background: `linear-gradient(135deg, ${primaryColor}, ${alpha(primaryColor, 0.6)})`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: `0 8px 20px ${alpha(primaryColor, 0.4)}`,
+                                    }}
+                                >
+                                    <SchoolIcon sx={{ color: '#fff', fontSize: 26 }} />
+                                </Box>
+                                <Box>
+                                    <Stack direction="row" alignItems="center" gap={1.5}>
+                                        <Typography
+                                            variant="h3"
+                                            fontWeight={800}
+                                            sx={{
+                                                background: `linear-gradient(45deg, ${theme.palette.text.primary}, ${primaryColor})`,
+                                                WebkitBackgroundClip: 'text',
+                                                WebkitTextFillColor: 'transparent',
+                                                lineHeight: 1.1,
+                                            }}
+                                        >
+                                            {subjectLabel} Setup
+                                        </Typography>
+                                    </Stack>
+                                    <Stack direction="row" gap={1} mt={0.5}>
+                                        <Chip
+                                            label={meta.emoji + ' ' + levelLabel}
+                                            size="small"
+                                            sx={{ fontWeight: 700, bgcolor: alpha(meta.color, 0.1), color: meta.color }}
+                                        />
+                                        <Chip
+                                            label="Quarter Grades"
+                                            size="small"
+                                            sx={{ fontWeight: 700, bgcolor: alpha(primaryColor, 0.1), color: primaryColor }}
+                                        />
+                                    </Stack>
+                                </Box>
+                            </Stack>
+                        </Stack>
+                    </Box>
+
                     <Stack spacing={4}>
-                        {/* Header Title */}
-                        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <IconButton component={Link} href={`/vice/grades/quarter/${level}`} sx={{ color: 'white' }}>
-                                <ArrowBackIcon />
-                            </IconButton>
-                            <Typography variant="h4" fontWeight="bold" sx={{ color: '#fff' }}>
-                                {subject} Grades - {level.charAt(0).toUpperCase() + level.slice(1)}
-                            </Typography>
-                        </Box>
-
-                        {/* Main Content Card */}
+                        {/* Max Grades Setup Card (VP Role) */}
                         <Card
+                            component={motion.div}
+                            variants={itemVariants}
                             sx={{
-                                backgroundImage: 'url(/Images/Frame.png)', // Using Frame.png as per other pages
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
                                 borderRadius: '24px',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-                                p: { xs: 3, md: 5 },
-                                minHeight: '600px',
-                                position: 'relative'
+                                backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                                backdropFilter: 'blur(20px)',
+                                border: `1px solid ${alpha(primaryColor, 0.3)}`,
+                                boxShadow: `0 12px 48px ${alpha(primaryColor, 0.08)}`,
+                                p: { xs: 3, md: 4 },
+                                position: 'relative',
+                                overflow: 'hidden'
                             }}
                         >
-                            <Box sx={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                borderRadius: '24px',
-                                p: 4
-                            }}>
-                                <Stack spacing={4}>
-                                    {/* Inner Title with Icon */}
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Box sx={{
-                                            width: 40, height: 40,
-                                            backgroundColor: '#ffc107',
-                                            borderRadius: '8px',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            color: '#000'
-                                        }}>
-                                            <SchoolIcon />
-                                        </Box>
-                                        <Typography variant="h6" fontWeight="bold">Students List</Typography>
+                            <Box sx={{ position: 'absolute', top: -30, right: -30, opacity: 0.05, transform: 'rotate(15deg)' }}>
+                                <AutoAwesomeIcon sx={{ fontSize: 200, color: primaryColor }} />
+                            </Box>
+                            
+                            <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" mb={3} gap={2}>
+                                <Box>
+                                    <Typography variant="h5" fontWeight={800} color="text.primary" gutterBottom>
+                                        Maximum Quarter Grades Setup
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" fontWeight={500} maxWidth={600}>
+                                        Set the final maximum score for each quarter. Teachers will use these maximums when entering individual student scores for their classes.
+                                    </Typography>
+                                </Box>
+                                <Button
+                                    onClick={handleSaveMaxGrades}
+                                    disabled={savingMax || !isMaxGradesChanged || isAdmin}
+                                    variant="contained"
+                                    startIcon={savingMax ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                                    sx={{
+                                        background: (isMaxGradesChanged && !isAdmin) ? `linear-gradient(45deg, ${primaryColor}, ${alpha(primaryColor, 0.7)})` : alpha(theme.palette.action.disabledBackground, 0.2),
+                                        color: (isMaxGradesChanged && !isAdmin) ? '#fff' : theme.palette.text.disabled,
+                                        fontWeight: 700, textTransform: 'none',
+                                        borderRadius: '12px', px: 3, py: 1.2,
+                                        boxShadow: isMaxGradesChanged ? `0 6px 20px ${alpha(primaryColor, 0.35)}` : 'none',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {savingMax ? 'Saving...' : 'Save Max Grades'}
+                                </Button>
+                            </Stack>
+
+                            <Stack direction="row" flexWrap="wrap" gap={3}>
+                                {(['q1', 'q2', 'q3', 'q4'] as const).map((q, i) => (
+                                    <Box key={q} sx={{ flex: '1 1 200px' }}>
+                                        <Typography variant="subtitle2" fontWeight={700} color="text.secondary" mb={1}>
+                                            Quarter {i + 1} Max Score
+                                        </Typography>
+                                        <TextField
+                                            fullWidth
+                                            type="number"
+                                            value={maxGrades[q] || ''}
+                                            disabled={isAdmin}
+                                            onChange={(e) => setMaxGrades({ ...maxGrades, [q]: Number(e.target.value) })}
+                                            inputProps={{ min: 1, style: { fontWeight: 800, fontSize: '1.2rem' } }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '16px',
+                                                    backgroundColor: alpha(primaryColor, 0.04),
+                                                    '& fieldset': { borderColor: alpha(primaryColor, 0.2) },
+                                                    '&:hover fieldset': { borderColor: primaryColor },
+                                                    '&.Mui-focused fieldset': { borderColor: primaryColor },
+                                                },
+                                            }}
+                                        />
                                     </Box>
+                                ))}
+                            </Stack>
+                        </Card>
 
-                                    {/* Filters Section */}
-                                    <Stack spacing={2} alignItems="center" sx={{ width: '100%' }}>
-                                        {/* Level Filter */}
-                                        <RadioGroup
-                                            row
-                                            value={levelFilter}
-                                            onChange={(e) => setLevelFilter(e.target.value)}
-                                        >
-                                            <FormControlLabel value="junior" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Junior" />
-                                            <FormControlLabel value="wheeler" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Wheeler" />
-                                            <FormControlLabel value="senior" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Senior" />
-                                        </RadioGroup>
+                        {/* Students Filter + Table Card */}
+                        <Card
+                            component={motion.div}
+                            variants={itemVariants}
+                            sx={{
+                                borderRadius: '28px',
+                                backgroundColor: alpha(theme.palette.background.paper, 0.8),
+                                backdropFilter: 'blur(20px)',
+                                border: `1px solid ${alpha(theme.palette.common.white, 0.12)}`,
+                                boxShadow: `0 12px 48px ${alpha(theme.palette.common.black, 0.08)}`,
+                                overflow: 'hidden',
+                            }}
+                        >
+                            {/* Filter Bar */}
+                            <Box sx={{ px: 4, py: 2.5, borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}` }}>
+                                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
+                                    <Stack direction="row" alignItems="center" gap={3} flexWrap="wrap">
+                                        <Typography variant="h6" fontWeight={800} color="text.primary">
+                                            Student Records
+                                        </Typography>
+                                        
+                                        <Stack direction="row" alignItems="center" gap={1.5}>
+                                            <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                                                Department:
+                                            </Typography>
+                                            <RadioGroup row value={department} onChange={(e) => setDepartment(e.target.value)}>
+                                                {['om', 'sd'].map((dep) => (
+                                                    <FormControlLabel
+                                                        key={dep} value={dep}
+                                                        control={<Radio size="small" sx={{ color: alpha(primaryColor, 0.4), '&.Mui-checked': { color: primaryColor } }} />}
+                                                        label={<Typography variant="body2" fontWeight={700} textTransform="uppercase">{dep}</Typography>}
+                                                    />
+                                                ))}
+                                            </RadioGroup>
+                                        </Stack>
 
-                                        {/* Divider Line #1 */}
-                                        <Box sx={{ width: '100%', height: '1px', backgroundColor: '#e0e0e0' }} />
-
-                                        {/* Department Filter */}
-                                        <RadioGroup
-                                            row
-                                            value={departmentFilter}
-                                            onChange={(e) => setDepartmentFilter(e.target.value)}
-                                        >
-                                            <FormControlLabel value="om" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="OM" />
-                                            <FormControlLabel value="sd" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="SD" />
-                                        </RadioGroup>
-
-                                        {/* Divider Line #2 */}
-                                        <Box sx={{ width: '100%', height: '1px', backgroundColor: '#e0e0e0' }} />
-
-                                        {/* Class Filter */}
-                                        <RadioGroup
-                                            row
-                                            value={classFilter}
-                                            onChange={(e) => setClassFilter(e.target.value)}
-                                        >
-                                            <FormControlLabel value="class1" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Class 1" />
-                                            <FormControlLabel value="class2" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Class 2" />
-                                            <FormControlLabel value="class3" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Class 3" />
-                                        </RadioGroup>
+                                        <Stack direction="row" alignItems="center" gap={1.5}>
+                                            <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                                                Class:
+                                            </Typography>
+                                            <RadioGroup row value={classId} onChange={(e) => setClassId(e.target.value)}>
+                                                <FormControlLabel value="all" control={<Radio size="small" sx={{ color: alpha(primaryColor, 0.4), '&.Mui-checked': { color: primaryColor } }} />} label={<Typography variant="body2" fontWeight={700}>All Classes</Typography>} />
+                                                {availableClasses.map((cls) => (
+                                                    <FormControlLabel 
+                                                        key={cls} 
+                                                        value={cls} 
+                                                        control={<Radio size="small" sx={{ color: alpha(primaryColor, 0.4), '&.Mui-checked': { color: primaryColor } }} />} 
+                                                        label={<Typography variant="body2" fontWeight={700}>{cls}</Typography>} 
+                                                    />
+                                                ))}
+                                            </RadioGroup>
+                                        </Stack>
                                     </Stack>
 
-                                    {/* Table */}
-                                    <Alert severity="warning">
-                                        Quarter grades endpoint is not integrated yet. No mock data is displayed.
-                                    </Alert>
-                                    <TableContainer component={Paper} elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', mt: 4 }}>
-                                        <Table>
-                                            <TableHead sx={{ backgroundColor: '#ffc107' }}>
-                                                <TableRow>
-                                                    <TableCell sx={{ fontWeight: 'bold', width: '30%' }}>Student Name</TableCell>
-                                                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Qarter 1</TableCell>
-                                                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Qarter 2</TableCell>
-                                                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Qarter 3</TableCell>
-                                                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Qarter 4</TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {students.map((student) => (
-                                                    <TableRow key={student.id} sx={{ backgroundColor: '#fff' }}>
-                                                        <TableCell sx={{ fontWeight: 'bold' }}>{student.name}</TableCell>
-                                                        <TableCell align="center">
-                                                            <TextField
-                                                                variant="outlined"
-                                                                size="small"
-                                                                defaultValue={student.q1}
-                                                                sx={{ maxWidth: 80, backgroundColor: '#fff' }}
-                                                                inputProps={{ style: { textAlign: 'center', fontWeight: 'bold' } }}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            <TextField
-                                                                variant="outlined"
-                                                                size="small"
-                                                                defaultValue={student.q2}
-                                                                sx={{ maxWidth: 80, backgroundColor: '#fff' }}
-                                                                inputProps={{ style: { textAlign: 'center', fontWeight: 'bold' } }}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            <TextField
-                                                                variant="outlined"
-                                                                size="small"
-                                                                defaultValue={student.q3}
-                                                                sx={{ maxWidth: 80, backgroundColor: '#fff' }}
-                                                                inputProps={{ style: { textAlign: 'center', fontWeight: 'bold' } }}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            <TextField
-                                                                variant="outlined"
-                                                                size="small"
-                                                                defaultValue={student.q4}
-                                                                sx={{ maxWidth: 80, backgroundColor: '#fff' }}
-                                                                inputProps={{ style: { textAlign: 'center', fontWeight: 'bold' } }}
-                                                            />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </TableContainer>
+                                    <Button
+                                        onClick={handleSaveStudents}
+                                        disabled={savingStudents || isAdmin}
+                                        variant="outlined"
+                                        startIcon={savingStudents ? <CircularProgress size={16} /> : <SaveIcon />}
+                                        sx={{
+                                            fontWeight: 700, textTransform: 'none',
+                                            borderColor: alpha(primaryColor, 0.4), color: primaryColor,
+                                            borderRadius: '12px', px: 3,
+                                            '&:hover': { borderColor: primaryColor, bgcolor: alpha(primaryColor, 0.06) },
+                                        }}
+                                    >
+                                        {savingStudents ? 'Saving...' : 'Save Student Grades'}
+                                    </Button>
                                 </Stack>
                             </Box>
+
+                            {/* Table */}
+                            <TableContainer>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow sx={{ background: `linear-gradient(90deg, ${alpha(primaryColor, 0.1)}, ${alpha(meta.color, 0.08)})` }}>
+                                            <TableCell align="center" sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'text.primary', border: 'none', py: 2 }}>#</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'text.primary', border: 'none', py: 2 }}>Student Name</TableCell>
+                                            {(['q1', 'q2', 'q3', 'q4'] as const).map((q, i) => (
+                                                <TableCell key={q} align="center" sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'text.primary', border: 'none', py: 2 }}>
+                                                    Quarter {i + 1}
+                                                    <Typography component="span" display="block" variant="caption" color="text.secondary" fontWeight={600}>
+                                                        Max: {originalMaxGrades[q]}
+                                                    </Typography>
+                                                </TableCell>
+                                            ))}
+                                            <TableCell align="center" sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'text.primary', border: 'none', py: 2 }}>Status</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        <AnimatePresence>
+                                            {loading
+                                                ? Array.from({ length: 5 }).map((_, i) => (
+                                                    <TableRow key={i}>
+                                                        {Array.from({ length: 7 }).map((_, j) => (
+                                                            <TableCell key={j}><Skeleton variant="text" width={j === 1 ? '80%' : '60%'} /></TableCell>
+                                                        ))}
+                                                    </TableRow>
+                                                ))
+                                                : students.length === 0
+                                                    ? (
+                                                        <TableRow>
+                                                            <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                                                                <Typography color="text.disabled" fontWeight={500}>
+                                                                    No students found for this selection
+                                                                </Typography>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )
+                                                    : students.map((student, i) => {
+                                                        const isModified = 
+                                                            localGrades[student.studentId]?.q1 !== student.q1 ||
+                                                            localGrades[student.studentId]?.q2 !== student.q2 ||
+                                                            localGrades[student.studentId]?.q3 !== student.q3 ||
+                                                            localGrades[student.studentId]?.q4 !== student.q4;
+
+                                                        const hasAnyGrade = 
+                                                            localGrades[student.studentId]?.q1 !== null ||
+                                                            localGrades[student.studentId]?.q2 !== null ||
+                                                            localGrades[student.studentId]?.q3 !== null ||
+                                                            localGrades[student.studentId]?.q4 !== null;
+
+                                                        return (
+                                                            <TableRow
+                                                                key={student.studentId}
+                                                                component={motion.tr}
+                                                                initial={{ opacity: 0, y: 8 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ delay: i * 0.03 }}
+                                                                sx={{
+                                                                    '&:hover': { bgcolor: alpha(primaryColor, 0.04) },
+                                                                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+                                                                    transition: 'background 0.2s',
+                                                                }}
+                                                            >
+                                                                <TableCell align="center" sx={{ fontWeight: 700, color: 'text.disabled', width: 48 }}>{i + 1}</TableCell>
+                                                                <TableCell sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                                                    {student.studentName}
+                                                                    {student.studentCode && (
+                                                                        <Typography component="span" variant="caption" sx={{ ml: 1, color: 'text.disabled' }}>
+                                                                            ({student.studentCode})
+                                                                        </Typography>
+                                                                    )}
+                                                                </TableCell>
+
+                                                                {(['q1', 'q2', 'q3', 'q4'] as const).map((q) => (
+                                                                    <TableCell key={q} align="center">
+                                                                        <TextField
+                                                                            type="number"
+                                                                            variant="outlined"
+                                                                            size="small"
+                                                                            value={localGrades[student.studentId]?.[q] ?? ''}
+                                                                            disabled={isAdmin}
+                                                                            onChange={(e) => {
+                                                                                let val = e.target.value === '' ? null : Number(e.target.value);
+                                                                                if (val !== null && val > originalMaxGrades[q]) val = originalMaxGrades[q];
+                                                                                if (val !== null && val < 0) val = 0;
+                                                                                
+                                                                                setLocalGrades((prev) => ({
+                                                                                    ...prev,
+                                                                                    [student.studentId]: { ...prev[student.studentId], [q]: val }
+                                                                                }));
+                                                                            }}
+                                                                            inputProps={{ min: 0, max: originalMaxGrades[q], style: { textAlign: 'center', fontWeight: 700 } }}
+                                                                            sx={{
+                                                                                width: 80,
+                                                                                '& .MuiOutlinedInput-root': {
+                                                                                    borderRadius: '10px',
+                                                                                    '& fieldset': { borderColor: alpha(primaryColor, 0.25) },
+                                                                                    '&:hover fieldset': { borderColor: primaryColor },
+                                                                                    '&.Mui-focused fieldset': { borderColor: primaryColor },
+                                                                                },
+                                                                            }}
+                                                                        />
+                                                                    </TableCell>
+                                                                ))}
+
+                                                                <TableCell align="center">
+                                                                    {isModified ? (
+                                                                        <Chip label="Unsaved" size="small" sx={{ fontWeight: 700, bgcolor: alpha('#F59E0B', 0.12), color: '#F59E0B', fontSize: '0.65rem' }} />
+                                                                    ) : hasAnyGrade ? (
+                                                                        <Chip label="Saved" size="small" sx={{ fontWeight: 700, bgcolor: alpha(primaryColor, 0.1), color: primaryColor, fontSize: '0.65rem' }} />
+                                                                    ) : (
+                                                                        <Chip label="Empty" size="small" sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.text.primary, 0.06), color: 'text.disabled', fontSize: '0.65rem' }} />
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                        </AnimatePresence>
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
                         </Card>
                     </Stack>
-                </Container>
-            </Box>
+                </Box>
+            </Container>
+
+            {/* Snackbar */}
+            <Snackbar
+                open={snack.open}
+                autoHideDuration={4000}
+                onClose={() => setSnack((s) => ({ ...s, open: false }))}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity={snack.severity} sx={{ borderRadius: '16px', fontWeight: 600 }}>
+                    {snack.msg}
+                </Alert>
+            </Snackbar>
         </Box>
+    );
+}
+
+export default function QuarterSubjectGrades() {
+    return (
+        <Suspense fallback={<Container sx={{ py: 4 }} />}>
+            <QuarterSubjectGradesContent />
+        </Suspense>
     );
 }
