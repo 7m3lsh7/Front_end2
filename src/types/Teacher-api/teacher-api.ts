@@ -34,6 +34,10 @@ export interface TeacherClass {
 export interface TeacherStudent {
   id: number | string;
   name: string;
+  q1?: number;
+  q2?: number;
+  q3?: number;
+  q4?: number;
   quarterGrade?: number;
   teacherGrade?: number;
   finalGrade?: number; // Grade from admin (passing grade threshold)

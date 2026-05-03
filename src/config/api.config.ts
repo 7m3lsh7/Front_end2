@@ -41,6 +41,7 @@ const processQueue = (error: unknown, token: string | null = null): void => {
 
 const getErrorMessage = async (res: Response): Promise<string> => {
   let errorMessage = "API request failed";
+  const clonedRes = res.clone();
   try {
     const errorData = await res.json().catch(() => null) as
       | { message?: string; title?: string; errors?: Record<string, string[]> }
@@ -60,6 +61,21 @@ const getErrorMessage = async (res: Response): Promise<string> => {
   } catch {
     // Keep fallback message.
   }
+
+  if (errorMessage === "API request failed" || errorMessage === "One or more validation errors occurred.") {
+    try {
+      const text = await clonedRes.text();
+      if (text && text.trim()) {
+         const match = text.match(/<title>(.*?)<\/title>/);
+         if (match && match[1]) {
+           errorMessage = match[1];
+         } else {
+           errorMessage = text.substring(0, 150).replace(/\n/g, ' ') + '...';
+         }
+      }
+    } catch {}
+  }
+
   return `${errorMessage} (HTTP ${res.status})`;
 };
 

@@ -11,6 +11,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { secureFetch } from '@/config/api.config';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -58,19 +59,30 @@ export default function SubjectSelectionPage() {
     const API = process.env.NEXT_PUBLIC_API_URL || 'https://evaschool.runasp.net/api';
 
     useEffect(() => {
-        const token = typeof window !== 'undefined' ? sessionStorage.getItem('accessToken') : null;
-        fetch(`${API}/Subjects`, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            credentials: 'include',
-        })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((data) => {
-                setSubjects(Array.isArray(data) && data.length > 0 ? data : FALLBACK_SUBJECTS);
+        secureFetch(`${API}/Subjects?year=${encodeURIComponent(level)}`)
+            .then((data: any) => {
+                let list: any[] = [];
+                if (Array.isArray(data)) list = data;
+                else if (data && typeof data === 'object') {
+                    if (Array.isArray(data.value)) list = data.value;
+                    else if (Array.isArray(data.data)) list = data.data;
+                    else if (Array.isArray(data.subjects)) list = data.subjects;
+                }
+                
+                if (list.length > 0) {
+                    setSubjects(list.map((s: any) => ({
+                        id: String(s.id ?? s.subjectId),
+                        name: s.subjectName ?? s.name ?? 'Unknown',
+                        gradeType: s.subjectName?.toLowerCase().includes('jadarat') ? 'competency' : 'academic'
+                    })));
+                } else {
+                    setSubjects(FALLBACK_SUBJECTS);
+                }
             })
-            .catch(() => setSubjects(FALLBACK_SUBJECTS))
+            .catch((e) => {
+                console.error("Failed to fetch subjects:", e);
+                setSubjects(FALLBACK_SUBJECTS);
+            })
             .finally(() => setLoading(false));
     }, [level, API]);
 

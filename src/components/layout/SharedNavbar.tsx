@@ -102,7 +102,7 @@ export default function SharedNavbar() {
 
         // Admin or others
         return [
-            { href: "/admin", label: t("common.home") },
+            { href: "/vice/grades", label: t("common.home") },
             { href: "/analytics", label: t("common.analytics") },
             { href: "/rankings", label: t("common.rankings") },
             { href: "/about", label: t("common.about") },

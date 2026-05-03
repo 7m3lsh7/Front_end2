@@ -1,147 +1,315 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Alert, Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Paper } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Box, Container, Typography, Stack, Card, RadioGroup, FormControlLabel, Radio,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton,
+  Paper, CircularProgress, Alert, useTheme, alpha, Button
+} from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SchoolIcon from '@mui/icons-material/School'; // Placeholder icon if needed
+import SchoolIcon from '@mui/icons-material/School';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { ViceStudentsAPI } from '@/data/vice-students.api';
+import type { ViceStudent, ViceDepartment, ViceLevel } from '@/types/vice/students';
+import { useLanguage } from '@/context/LanguageContext';
+import { appToast } from '@/hooks/useAppToast';
+import EditStudentModal from '@/components/vice/students/EditStudentModal';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
+};
 
 export default function AllStudentsPage() {
-    const students: Array<{ id: string; name: string; department: string; class: string }> = [];
+  const router = useRouter();
+  const theme = useTheme();
+  const { t } = useLanguage();
+  const primary = theme.palette.primary.main;
 
-    const [departmentFilter, setDepartmentFilter] = useState('om');
-    const [levelFilter, setLevelFilter] = useState('junior');
+  const [students, setStudents] = useState<ViceStudent[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  const [editingStudent, setEditingStudent] = useState<ViceStudent | null>(null);
 
-    return (
-        <Box sx={{ position: 'relative', minHeight: '100vh' }}>
-            {/* Full Page Background */}
-            <Box
-                sx={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundImage: 'url(/Images/background1.png)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    zIndex: -1,
-                }}
-            />
+  const [departmentFilter, setDepartmentFilter] = useState<ViceDepartment>('OM');
+  const [levelFilter, setLevelFilter] = useState<ViceLevel>('junior');
 
-            <Box sx={{ py: 4, position: 'relative' }}>
-                <Container maxWidth="lg">
-                    <Stack spacing={4}>
-                        {/* Header */}
-                        <Box>
-                            {/* Breadcrumb-like or just title? Design shows "Student Assignment Dashboard" */}
-                            {/* Assuming this is a sub-page, maybe a back button would be good but design doesn't explicitly show one outside the specific context. 
-                             Design image shows "Home Years About" nav, which is handled by Navbar. 
-                             The title on page is "Student Assignment Dashboard". 
-                         */}
-                            <Typography variant="h4" fontWeight="bold" sx={{ color: '#fff', mb: 4 }}>
-                                Student Assignment Dashboard
-                            </Typography>
-                        </Box>
+  const fetchStudents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await ViceStudentsAPI.list({
+        year: levelFilter,
+        department: departmentFilter,
+      });
+      setStudents(data);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load students');
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [levelFilter, departmentFilter]);
 
-                        {/* Main Content Card - Students List */}
-                        <Card
-                            sx={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)', // Slightly transparent white or solid white as per design
-                                borderRadius: '24px',
-                                p: { xs: 3, md: 5 },
-                                boxShadow: '0px 4px 20px rgba(0,0,0,0.1)'
-                            }}
-                        >
-                            <Stack spacing={3}>
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
 
-                                {/* Card Header with Icon */}
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <Box sx={{
-                                        width: 40, height: 40,
-                                        backgroundColor: '#ffc107',
-                                        borderRadius: '8px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: '#000'
-                                    }}>
-                                        {/* Using an icon representing students/list */}
-                                        {/* If specific icon needed, can import specific SVGs. Using generic icon for now based on MUI */}
-                                        <SchoolIcon />
-                                    </Box>
-                                    <Typography variant="h6" fontWeight="bold">Students List</Typography>
-                                </Box>
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to unassign this student from their class?")) return;
+    try {
+      // Instead of hard deleting, we unassign them by setting classId to 0
+      await ViceStudentsAPI.update(id, { classId: 0 });
+      appToast.success("Student unassigned from class successfully");
+      fetchStudents();
+    } catch (e: unknown) {
+      appToast.error(e instanceof Error ? e.message : "Failed to unassign student");
+    }
+  };
 
-                                {/* Filters */}
-                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 2 }}>
-                                    {/* Department Filter */}
-                                    <RadioGroup
-                                        row
-                                        value={departmentFilter}
-                                        onChange={(e) => setDepartmentFilter(e.target.value)}
-                                    >
-                                        <FormControlLabel value="om" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="OM" />
-                                        <FormControlLabel value="sd" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="SD" />
-                                    </RadioGroup>
+  const handleEditSubmit = async (payload: { firstName?: string; lastName?: string; studentCode?: string }) => {
+    if (!editingStudent) return;
+    try {
+        await ViceStudentsAPI.update(editingStudent.id, payload);
+        appToast.success("Student updated successfully");
+        fetchStudents();
+        setEditingStudent(null);
+    } catch (e: unknown) {
+        throw e; // rethrow to be caught by the modal
+    }
+  };
 
-                                    {/* Level Filter */}
-                                    <RadioGroup
-                                        row
-                                        value={levelFilter}
-                                        onChange={(e) => setLevelFilter(e.target.value)}
-                                    >
-                                        <FormControlLabel value="junior" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Junior" />
-                                        <FormControlLabel value="wheeler" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Wheeler" />
-                                        <FormControlLabel value="senior" control={<Radio sx={{ color: '#ffc107', '&.Mui-checked': { color: '#ffc107' } }} />} label="Senior" />
-                                    </RadioGroup>
-                                </Box>
+  const glassCardSx = {
+    p: { xs: 3, md: 4 },
+    borderRadius: '24px',
+    backgroundColor: alpha(theme.palette.background.paper, 0.7),
+    backdropFilter: 'blur(24px)',
+    border: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
+    boxShadow: `0 12px 40px ${alpha(theme.palette.common.black, 0.08)}`,
+  };
 
-                                {/* Table */}
-                                <Alert severity="warning">
-                                    Students list endpoint is not integrated yet. No mock data is shown in production mode.
-                                </Alert>
-                                <TableContainer component={Paper} elevation={0} sx={{ border: 'none', borderRadius: '12px', overflow: 'hidden' }}>
-                                    <Table>
-                                        <TableHead sx={{ backgroundColor: '#ffc107' }}>
-                                            <TableRow>
-                                                <TableCell sx={{ fontWeight: 'bold', color: '#000' }}>Student Name</TableCell>
-                                                <TableCell sx={{ fontWeight: 'bold', color: '#000' }}>Student ID</TableCell>
-                                                <TableCell sx={{ fontWeight: 'bold', color: '#000' }}>Department</TableCell>
-                                                <TableCell sx={{ fontWeight: 'bold', color: '#000' }}>Class</TableCell>
-                                                <TableCell sx={{ fontWeight: 'bold', color: '#000' }}>Actions</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            {students.map((student) => (
-                                                <TableRow key={student.id} sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { backgroundColor: '#f5f5f5' } }}>
-                                                    <TableCell sx={{ fontWeight: 'bold' }}>{student.name}</TableCell>
-                                                    <TableCell sx={{ fontWeight: 'bold' }}>{student.id}</TableCell>
-                                                    <TableCell sx={{ fontWeight: 'bold' }}>{student.department}</TableCell>
-                                                    <TableCell sx={{ fontWeight: 'bold', color: '#2e7d32' }}>{student.class}</TableCell> {/* Green color for class as per design hint */}
-                                                    <TableCell>
-                                                        <Stack direction="row" spacing={1}>
-                                                            {/* Edit Action */}
-                                                            <IconButton size="small" sx={{ color: '#1976d2' }}>
-                                                                <EditIcon fontSize="small" />
-                                                            </IconButton>
-                                                            {/* Delete Action */}
-                                                            <IconButton size="small" sx={{ color: '#d32f2f' }}>
-                                                                <DeleteIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Stack>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
+  return (
+    <Box sx={{ position: 'relative', minHeight: '100vh', pb: 8, bgcolor: theme.palette.background.default, overflow: 'hidden' }}>
+      {/* Animated BG */}
+      <Box
+        component={motion.div}
+        animate={{ scale: [1, 1.1, 1], rotate: [0, -10, 0] }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        sx={{
+          position: 'absolute', top: '-20%', right: '-10%', width: '100%', height: '100%',
+          background: `radial-gradient(circle at 70% 30%, ${alpha(primary, 0.15)}, transparent 50%)`,
+          zIndex: 0, pointerEvents: 'none',
+        }}
+      />
 
-                            </Stack>
-                        </Card>
+      <Box sx={{ py: 4, position: 'relative', zIndex: 1 }}>
+        <Container maxWidth="lg">
+          <Box
+            component={motion.div}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}
+          >
+            <IconButton onClick={() => router.back()} sx={{ bgcolor: alpha(theme.palette.text.primary, 0.05) }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 800,
+                background: `linear-gradient(45deg, ${theme.palette.text.primary}, ${primary})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              All Students Dashboard
+            </Typography>
+          </Box>
 
-                    </Stack>
-                </Container>
-            </Box>
-        </Box>
-    );
+          <Box component={motion.div} variants={containerVariants} initial="hidden" animate="visible">
+            <Card sx={glassCardSx}>
+              <Stack spacing={4}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{
+                      width: 44, height: 44,
+                      background: `linear-gradient(135deg, ${primary}, ${theme.palette.secondary?.main || primary})`,
+                      borderRadius: '12px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: theme.palette.primary.contrastText,
+                      boxShadow: `0 4px 12px ${alpha(primary, 0.4)}`,
+                    }}>
+                      <SchoolIcon />
+                    </Box>
+                    <Typography variant="h5" fontWeight={800}>
+                      Students Directory
+                    </Typography>
+                  </Box>
+                  
+                  <Button
+                    variant="contained"
+                    onClick={() => router.push('/vice/students/promote')}
+                    sx={{
+                      background: `linear-gradient(45deg, ${primary}, ${theme.palette.secondary?.main || primary})`,
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      borderRadius: '12px',
+                      px: 3,
+                    }}
+                  >
+                    Promote Students
+                  </Button>
+                </Box>
+
+                {/* Filters */}
+                <Box sx={{
+                  display: 'flex', flexWrap: 'wrap', gap: 6,
+                  bgcolor: alpha(theme.palette.background.default, 0.5),
+                  p: 2.5, borderRadius: 3, border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                }}>
+                  <Box>
+                    <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>DEPARTMENT</Typography>
+                    <RadioGroup row value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value as ViceDepartment)}>
+                      <FormControlLabel value="OM" control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} size="small" />} label={<Typography fontWeight={600} fontSize="0.95rem">OM</Typography>} />
+                      <FormControlLabel value="SD" control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} size="small" />} label={<Typography fontWeight={600} fontSize="0.95rem">SD</Typography>} />
+                    </RadioGroup>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>LEVEL</Typography>
+                    <RadioGroup row value={levelFilter} onChange={(e) => setLevelFilter(e.target.value as ViceLevel)}>
+                      {(['junior', 'wheeler', 'senior'] as ViceLevel[]).map((lv) => (
+                        <FormControlLabel key={lv} value={lv}
+                          control={<Radio sx={{ color: primary, '&.Mui-checked': { color: primary } }} size="small" />}
+                          label={<Typography fontWeight={600} fontSize="0.95rem" sx={{ textTransform: 'capitalize' }}>{lv}</Typography>}
+                        />
+                      ))}
+                    </RadioGroup>
+                  </Box>
+                </Box>
+
+                {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
+
+                <TableContainer component={Paper} elevation={0} sx={{
+                  borderRadius: 3,
+                  bgcolor: alpha(theme.palette.background.default, 0.4),
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  overflow: 'hidden'
+                }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: alpha(primary, 0.1) }}>
+                        <TableCell sx={{ fontWeight: 800, color: theme.palette.text.primary, borderBottom: 'none' }}>Name</TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: theme.palette.text.primary, borderBottom: 'none' }}>Student Code</TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: theme.palette.text.primary, borderBottom: 'none' }}>Dept</TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: theme.palette.text.primary, borderBottom: 'none' }}>Class</TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: theme.palette.text.primary, borderBottom: 'none' }} align="right">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <AnimatePresence mode="popLayout">
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={5} align="center" sx={{ py: 6, borderBottom: 'none' }}>
+                              <CircularProgress color="primary" />
+                            </TableCell>
+                          </TableRow>
+                        ) : students.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} align="center" sx={{ py: 6, borderBottom: 'none' }}>
+                              <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                                No students found for this department and level.
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          students.map((student) => (
+                            <TableRow
+                              component={motion.tr}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              key={student.id}
+                              sx={{
+                                '&:last-child td': { border: 0 },
+                                transition: 'background-color 0.2s',
+                                '&:hover': { bgcolor: alpha(theme.palette.background.paper, 0.8) }
+                              }}
+                            >
+                              <TableCell sx={{ fontWeight: 600, borderBottomColor: alpha(theme.palette.divider, 0.1) }}>
+                                {student.name}
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 500, borderBottomColor: alpha(theme.palette.divider, 0.1) }}>
+                                {student.studentCode || '-'}
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 700, color: primary, borderBottomColor: alpha(theme.palette.divider, 0.1) }}>
+                                {student.department}
+                              </TableCell>
+                              <TableCell sx={{ borderBottomColor: alpha(theme.palette.divider, 0.1) }}>
+                                {student.className ? (
+                                  <Box sx={{
+                                    display: 'inline-block', px: 1.5, py: 0.5, borderRadius: '8px',
+                                    bgcolor: alpha(theme.palette.success.main, 0.15),
+                                    color: theme.palette.success.main,
+                                    fontWeight: 700, fontSize: '0.85rem'
+                                  }}>
+                                    {student.className}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="caption" color="text.secondary" fontWeight={600}>Unassigned</Typography>
+                                )}
+                              </TableCell>
+                              <TableCell align="right" sx={{ borderBottomColor: alpha(theme.palette.divider, 0.1) }}>
+                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => setEditingStudent(student)}
+                                    sx={{ color: theme.palette.info.main, bgcolor: alpha(theme.palette.info.main, 0.1) }}
+                                    title="Edit Student"
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  {student.className && (
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handleDelete(student.id)}
+                                        sx={{ color: theme.palette.error.main, bgcolor: alpha(theme.palette.error.main, 0.1) }}
+                                        title="Unassign from Class"
+                                      >
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                  )}
+                                </Stack>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Stack>
+            </Card>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Edit Student Modal */}
+      <EditStudentModal
+          open={!!editingStudent}
+          onClose={() => setEditingStudent(null)}
+          student={editingStudent}
+          onSubmit={handleEditSubmit}
+      />
+    </Box>
+  );
 }

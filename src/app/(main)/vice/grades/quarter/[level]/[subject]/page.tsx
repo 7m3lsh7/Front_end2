@@ -16,6 +16,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { secureFetch } from '@/config/api.config';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ interface StudentQuarterGrade {
     studentId: string;
     studentName: string;
     studentCode?: string;
+    classId: number | string;
     q1: number | null;
     q2: number | null;
     q3: number | null;
@@ -70,7 +72,7 @@ function QuarterSubjectGradesContent() {
 
     const [department, setDepartment] = useState('om');
     const [classId, setClassId] = useState('all');
-    const [availableClasses, setAvailableClasses] = useState<string[]>([]);
+    const [availableClasses, setAvailableClasses] = useState<{ id: string | number; name: string }[]>([]);
 
     const { user } = useAuth();
     const isAdmin = user?.role === 'Admin';
@@ -90,52 +92,77 @@ function QuarterSubjectGradesContent() {
     const API = process.env.NEXT_PUBLIC_API_URL || 'https://evaschool.runasp.net/api';
     const getToken = () => (typeof window !== 'undefined' ? sessionStorage.getItem('accessToken') : null);
 
-    const loadData = useCallback(() => {
+    const loadData = useCallback(async () => {
         setLoading(true);
-        const token = getToken();
-        fetch(`${API}/vice/grades/quarter/students?level=${level}&subjectId=${subjectId}&department=${department}&classId=${classId}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            credentials: 'include',
-        })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((data: QuarterGradesResponse | null) => {
-                if (data) {
-                    if (data.maxQuarterGrades) {
-                        setMaxGrades(data.maxQuarterGrades);
-                        setOriginalMaxGrades(data.maxQuarterGrades);
+
+        try {
+            // 1. Fetch available classes for this level
+            const classesData = await secureFetch(`${API}/Classes?yearId=${encodeURIComponent(level)}`) as any;
+            let classesList: any[] = [];
+            if (Array.isArray(classesData)) {
+                classesList = classesData;
+            } else if (classesData && typeof classesData === 'object') {
+                classesList = classesData.value ?? classesData.data ?? [];
+            }
+
+            // Map and filter available classes
+            const mappedClasses = classesList.map((c: any) => ({
+                id: c.classId ?? c.id,
+                name: c.className ?? c.name ?? `Class ${c.classId}`
+            }));
+            setAvailableClasses(mappedClasses);
+
+            // 2. Fetch students
+            let studentsList: any[] = [];
+            
+            // If a specific class is selected, fetch students for it
+            if (classId !== 'all') {
+                const stdData = await secureFetch(`${API}/Students?classId=${encodeURIComponent(classId)}`) as any;
+                const rawStudents = Array.isArray(stdData) ? stdData : (stdData.students ?? stdData.value ?? stdData.data ?? []);
+                studentsList = rawStudents.map((s: any) => ({ ...s, injectedClassId: classId }));
+            } else {
+                // If "all" is selected, fetch students for all mapped classes
+                const promises = mappedClasses.map(async (cls) => {
+                    try {
+                        const d = await secureFetch(`${API}/Students?classId=${encodeURIComponent(cls.id)}`) as any;
+                        const arr = Array.isArray(d) ? d : (d.students ?? d.value ?? d.data ?? []);
+                        return arr.map((s: any) => ({ ...s, injectedClassId: cls.id }));
+                    } catch {
+                        return [];
                     }
-                    const list = data.students ?? [];
-                    setStudents(list);
-                    setAvailableClasses(data.classes ?? []);
-                    
-                    const initial: Record<string, any> = {};
-                    list.forEach((s) => { initial[s.studentId] = { q1: s.q1, q2: s.q2, q3: s.q3, q4: s.q4 }; });
-                    setLocalGrades(initial);
-                } else {
-                    throw new Error('Fallback to mock');
-                }
-            })
-            .catch(() => {
-                // Mock data while backend is being integrated
-                const mockMax = { q1: 25, q2: 25, q3: 25, q4: 25 };
-                setMaxGrades(mockMax);
-                setOriginalMaxGrades(mockMax);
-                const mockList: StudentQuarterGrade[] = [
-                    { studentId: 's1', studentName: 'Ahmed Ali Mohammed', studentCode: 'STU001', q1: 20, q2: null, q3: null, q4: null },
-                    { studentId: 's2', studentName: 'Sara Hassan Ibrahim', studentCode: 'STU002', q1: null, q2: null, q3: null, q4: null },
-                    { studentId: 's3', studentName: 'Khalid Omar Nasser', studentCode: 'STU003', q1: 22, q2: 21, q3: null, q4: null },
-                ];
-                setStudents(mockList);
-                setAvailableClasses(['Class 1', 'Class 2', 'Class 3']);
-                const initial: Record<string, any> = {};
-                mockList.forEach((s) => { initial[s.studentId] = { q1: s.q1, q2: s.q2, q3: s.q3, q4: s.q4 }; });
-                setLocalGrades(initial);
-            })
-            .finally(() => setLoading(false));
-    }, [level, subjectId, department, classId, API]);
+                });
+                const results = await Promise.all(promises);
+                studentsList = results.flat();
+            }
+
+            // Filter students by department if needed (assuming student names or some property indicates it, or we just show all if no dept field exists)
+            // Note: The backend /api/Students doesn't return department. We will display all students in the class.
+
+            const formattedStudents: StudentQuarterGrade[] = studentsList.map((s: any) => ({
+                studentId: String(s.studentId ?? s.id),
+                studentName: s.studentName ?? s.fullName ?? s.name ?? 'Unknown',
+                studentCode: s.studentCode ?? '',
+                classId: s.injectedClassId ?? classId,
+                q1: s.q1 ?? null,
+                q2: s.q2 ?? null,
+                q3: s.q3 ?? null,
+                q4: s.q4 ?? null,
+            }));
+
+            setStudents(formattedStudents);
+
+            const initial: Record<string, any> = {};
+            formattedStudents.forEach((s) => { initial[s.studentId] = { q1: s.q1, q2: s.q2, q3: s.q3, q4: s.q4 }; });
+            setLocalGrades(initial);
+
+        } catch (error) {
+            console.error("Failed to fetch data", error);
+            setSnack({ open: true, msg: 'Failed to load data from database', severity: 'error' });
+            setStudents([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [level, classId, API]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -169,29 +196,55 @@ function QuarterSubjectGradesContent() {
         setSavingStudents(true);
         const token = getToken();
         
-        // Prepare payload with only modified students
-        const payload = Object.entries(localGrades).map(([studentId, grades]) => ({
-            studentId,
-            ...grades
-        }));
+        // Find modified students
+        const modifiedStudents = students.filter(student => {
+            const current = localGrades[student.studentId];
+            if (!current) return false;
+            return (
+                current.q1 !== student.q1 ||
+                current.q2 !== student.q2 ||
+                current.q3 !== student.q3 ||
+                current.q4 !== student.q4
+            );
+        });
+
+        if (modifiedStudents.length === 0) {
+            setSavingStudents(false);
+            return;
+        }
 
         try {
-            const r = await fetch(`${API}/vice/grades/quarter/students`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    level,
-                    subjectId,
-                    department,
-                    grades: payload
-                }),
+            let successCount = 0;
+            // Map modified to API requests
+            const promises = modifiedStudents.map(student => {
+                const current = localGrades[student.studentId];
+                // Calculate an approximate total grade or let backend do it
+                const grade = (current.q1 || 0) + (current.q2 || 0) + (current.q3 || 0) + (current.q4 || 0);
+
+                return fetch(`${API}/Grades`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        classId: Number(student.classId),
+                        studentId: Number(student.studentId),
+                        subjectId: Number(subjectId) || 0,
+                        grade,
+                        q1: current.q1,
+                        q2: current.q2,
+                        q3: current.q3,
+                        q4: current.q4
+                    }),
+                });
             });
-            if (r.ok) {
-                setSnack({ open: true, msg: 'Student quarter grades saved successfully!', severity: 'success' });
+
+            const results = await Promise.all(promises);
+            successCount = results.filter(r => r.ok).length;
+
+            if (successCount > 0) {
+                setSnack({ open: true, msg: `Saved grades for ${successCount} student(s) successfully!`, severity: 'success' });
                 // Re-sync local state with students array
                 setStudents(prev => prev.map(s => ({ ...s, ...localGrades[s.studentId] })));
             } else {
@@ -322,7 +375,7 @@ function QuarterSubjectGradesContent() {
                             <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" mb={3} gap={2}>
                                 <Box>
                                     <Typography variant="h5" fontWeight={800} color="text.primary" gutterBottom>
-                                        Maximum Quarter Grades Setup
+                                        Maximum Quarter Grades Setup <Typography component="span" variant="subtitle1" color="error.main" fontWeight={700}>(Static)</Typography>
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary" fontWeight={500} maxWidth={600}>
                                         Set the final maximum score for each quarter. Teachers will use these maximums when entering individual student scores for their classes.
@@ -418,10 +471,10 @@ function QuarterSubjectGradesContent() {
                                                 <FormControlLabel value="all" control={<Radio size="small" sx={{ color: alpha(primaryColor, 0.4), '&.Mui-checked': { color: primaryColor } }} />} label={<Typography variant="body2" fontWeight={700}>All Classes</Typography>} />
                                                 {availableClasses.map((cls) => (
                                                     <FormControlLabel 
-                                                        key={cls} 
-                                                        value={cls} 
+                                                        key={cls.id} 
+                                                        value={String(cls.id)} 
                                                         control={<Radio size="small" sx={{ color: alpha(primaryColor, 0.4), '&.Mui-checked': { color: primaryColor } }} />} 
-                                                        label={<Typography variant="body2" fontWeight={700}>{cls}</Typography>} 
+                                                        label={<Typography variant="body2" fontWeight={700}>{cls.name}</Typography>} 
                                                     />
                                                 ))}
                                             </RadioGroup>

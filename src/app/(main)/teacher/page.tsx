@@ -17,15 +17,9 @@ const YEAR_LABELS: Record<string, string> = {
   senior: "Senior",
 };
 
-const ACADEMIC_YEAR_LABELS: Record<string, string> = {
-  "2024-2025": "Junior",
-  "2025-2026": "Wheeler",
-  "2026-2027": "Senior",
-};
-
 const getYearIcon = (yearId: string): CardData["icon"] => {
-  if (yearId === "2025-2026") return WheelerIcon;
-  if (yearId === "2026-2027") return SeniorIcon;
+  if (yearId === "wheeler") return WheelerIcon;
+  if (yearId === "senior") return SeniorIcon;
   return JuniorIcon;
 };
 
@@ -57,7 +51,7 @@ export default function TeacherDashboard() {
         if (dashboardRes.status === "fulfilled") {
           const teacherCards: CardData[] = dashboardRes.value.map((yearBlock) => ({
             id: yearBlock.yearId,
-            title: ACADEMIC_YEAR_LABELS[yearBlock.yearId] ?? yearBlock.yearId,
+            title: YEAR_LABELS[yearBlock.yearId] ?? yearBlock.yearId,
             description: yearBlock.classes.length
               ? yearBlock.classes.map((cls) => cls.className).join(" - ")
               : "No classes assigned yet.",

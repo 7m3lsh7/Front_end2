@@ -10,10 +10,14 @@ export interface Notification {
   read: boolean;
   priority: "low" | "medium" | "high";
   role?: string;
+  targetRole?: string;
 }
 
-// Mock notifications — replace with DB query when backend is ready
-function generateNotifications(role: string): Notification[] {
+// In-memory store (resets on server restart — replace with DB when ready)
+const inMemoryNotifications: Notification[] = [];
+
+// Mock fallback notifications
+function generateMockNotifications(role: string): Notification[] {
   const now = new Date();
   const base: Notification[] = [
     {
@@ -54,13 +58,8 @@ function generateNotifications(role: string): Notification[] {
     },
   ];
 
-  // Filter by role relevance
-  if (role === "Student") {
-    return base.filter((n) => ["grade", "announcement", "system"].includes(n.type));
-  }
-  if (role === "Teacher") {
-    return base.filter((n) => ["announcement", "system", "reminder"].includes(n.type));
-  }
+  if (role === "Student") return base.filter((n) => ["grade", "announcement", "system"].includes(n.type));
+  if (role === "Teacher") return base.filter((n) => ["announcement", "system", "reminder"].includes(n.type));
   return base;
 }
 
@@ -76,25 +75,67 @@ export async function GET() {
   const API = process.env.NEXT_PUBLIC_API_URL || "https://evaschool.runasp.net/api";
   try {
     const res = await fetch(`${API}/notifications`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       cache: "no-store",
     });
-
     if (res.ok) {
       const data = await res.json();
-      return NextResponse.json(data);
+      // Merge with any in-memory notifications
+      const merged = [...inMemoryNotifications, ...(data.notifications ?? [])];
+      return NextResponse.json({ notifications: merged, unreadCount: merged.filter((n) => !n.read).length });
     }
   } catch {
     // Fall through to mock data
   }
 
-  // Return mock data with role-based filtering
-  const role = token === "student" ? "Student" : token === "teacher" ? "Teacher" : "Admin";
-  const notifications = generateNotifications(role);
-  return NextResponse.json({ notifications, unreadCount: notifications.filter((n) => !n.read).length });
+  // Return in-memory + mock data
+  const mockRole = token.startsWith("ey")
+    ? "Admin" // JWT tokens likely admin/teacher, parse properly in prod
+    : token === "student"
+    ? "Student"
+    : token === "teacher"
+    ? "Teacher"
+    : "Admin";
+  const mockNotifs = generateMockNotifications(mockRole);
+  const merged = [...inMemoryNotifications, ...mockNotifs];
+  return NextResponse.json({ notifications: merged, unreadCount: merged.filter((n) => !n.read).length });
+}
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({})) as Partial<Notification>;
+
+  if (!body.title || !body.message) {
+    return NextResponse.json({ message: "title and message are required" }, { status: 400 });
+  }
+
+  const notification: Notification = {
+    id: `notif_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    type: body.type ?? "system",
+    title: body.title,
+    message: body.message,
+    timestamp: new Date().toISOString(),
+    read: false,
+    priority: body.priority ?? "medium",
+    targetRole: body.targetRole,
+  };
+
+  // Store in memory (cap at 50)
+  inMemoryNotifications.unshift(notification);
+  if (inMemoryNotifications.length > 50) inMemoryNotifications.pop();
+
+  // Also try to push to backend
+  const cookieStore = await cookies();
+  const token = cookieStore.get("access_token")?.value;
+  if (token) {
+    const API = process.env.NEXT_PUBLIC_API_URL || "https://evaschool.runasp.net/api";
+    fetch(`${API}/notifications`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(notification),
+    }).catch(() => {});
+  }
+
+  return NextResponse.json({ success: true, notification });
 }
 
 export async function PATCH(request: Request) {
@@ -104,17 +145,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ message: "Notification ID required" }, { status: 400 });
   }
 
-  // In real app: update in DB
+  // Update in-memory
+  const notif = inMemoryNotifications.find((n) => n.id === id);
+  if (notif) notif.read = read;
+
+  // Try backend
   const API = process.env.NEXT_PUBLIC_API_URL || "https://evaschool.runasp.net/api";
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("access_token")?.value;
     const res = await fetch(`${API}/notifications/${id}`, {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ read }),
     });
     if (res.ok) return NextResponse.json({ success: true });

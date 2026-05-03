@@ -22,7 +22,7 @@ export default function DashboardLayout({
       <SharedNavbar />
 
       {/* Page Content */}
-      <Box sx={{ flex: 1, overflowY: "auto" }}>
+      <Box sx={{ flex: 1}}>
         <Box
           component={motion.div}
           initial={reduceMotion ? false : { opacity: 0, y: 6 }}

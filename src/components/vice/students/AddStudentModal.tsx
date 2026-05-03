@@ -44,9 +44,19 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
         if (!classId) return t('modal.pleaseSelectClassFirst');
         if (!form.firstName.trim()) return t('auth.usernameRequired', 'First name is required');
         if (!form.lastName.trim()) return t('teachers.lastNameRequired', 'Last name is required');
-        if (!form.studentCode.trim()) return t('modal.studentCode') + " " + t('auth.passwordRequired', 'is required');
-        if (!form.email.trim()) return t('modal.email') + " " + t('auth.passwordRequired', 'is required');
-        if (!form.phone.trim()) return t('modal.phone') + " " + t('auth.passwordRequired', 'is required');
+        
+        const code = form.studentCode.trim();
+        if (!code) return t('modal.studentCode') + " " + t('auth.passwordRequired', 'is required');
+        if (!/^[a-zA-Z0-9]+$/.test(code)) return "Student Code must be alphanumeric only";
+        
+        const email = form.email.trim();
+        if (!email) return t('modal.email') + " " + t('auth.passwordRequired', 'is required');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email address";
+        
+        const phone = form.phone.trim();
+        if (!phone) return t('modal.phone') + " " + t('auth.passwordRequired', 'is required');
+        if (!/^\d{8,15}$/.test(phone)) return "Phone must contain 8 to 15 digits";
+        
         return null;
     }, [classId, form, t]);
 
@@ -61,7 +71,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
         try {
             await onSubmit({
                 firstName: form.firstName.trim(),
-                middleName: form.middleName.trim() ? form.middleName.trim() : undefined,
+                middleName: form.middleName.trim(),
                 lastName: form.lastName.trim(),
                 studentCode: form.studentCode.trim(),
                 email: form.email.trim().toLowerCase(),
@@ -170,7 +180,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                             variant="outlined"
                             required
                             aria-required="true"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' }, '& .MuiInputBase-input': { color: '#000' }, '& .MuiInputLabel-root': { color: '#555' } }}
                         />
                     </Box>
                     <Box>
@@ -180,7 +190,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                             value={form.middleName}
                             onChange={(e) => setForm({ ...form, middleName: e.target.value })}
                             variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' }, '& .MuiInputBase-input': { color: '#000' }, '& .MuiInputLabel-root': { color: '#555' } }}
                         />
                     </Box>
                     <Box>
@@ -192,7 +202,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                             variant="outlined"
                             required
                             aria-required="true"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' }, '& .MuiInputBase-input': { color: '#000' }, '& .MuiInputLabel-root': { color: '#555' } }}
                         />
                     </Box>
                     <Box>
@@ -204,7 +214,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                             variant="outlined"
                             required
                             aria-required="true"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' }, '& .MuiInputBase-input': { color: '#000' }, '& .MuiInputLabel-root': { color: '#555' } }}
                         />
                     </Box>
                     <Box>
@@ -217,7 +227,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                             variant="outlined"
                             required
                             aria-required="true"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' }, '& .MuiInputBase-input': { color: '#000' }, '& .MuiInputLabel-root': { color: '#555' } }}
                         />
                     </Box>
                     <Box>
@@ -229,7 +239,7 @@ export default function AddStudentModal({ open, onClose, classId, year, departme
                             variant="outlined"
                             required
                             aria-required="true"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' } }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', backgroundColor: '#f5f5f5' }, '& .MuiInputBase-input': { color: '#000' }, '& .MuiInputLabel-root': { color: '#555' } }}
                         />
                     </Box>
                 </Box>

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Box,
   CircularProgress,
@@ -14,82 +14,157 @@ import {
   Typography,
   Button,
   Alert,
-  Card,
   Paper,
   useTheme,
   Chip,
+  alpha,
+  Container,
+  Skeleton,
+  InputAdornment,
+  Tooltip,
+  Snackbar,
 } from "@mui/material";
+import { motion } from "framer-motion";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GetAppIcon from "@mui/icons-material/GetApp";
-import Link from "next/link";
+import SearchIcon from "@mui/icons-material/Search";
+import SaveIcon from "@mui/icons-material/Save";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import PeopleIcon from "@mui/icons-material/People";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import { teacherService } from "@/services/teacher.service";
 import type { TeacherStudent } from "@/types/Teacher-api/teacher-api";
+import { appToast } from "@/hooks/useAppToast";
 
-const exportToExcel = (students: TeacherStudent[], subject: string, classId: string) => {
-  const headers = ["Student Name", "Final Grade", "Student Grade", "Status"];
+// ---------- Excel Export ----------
+const exportToExcel = (students: TeacherStudent[], subject: string, classId: string, year: string) => {
+  const headers = ["Student Name", "Q1", "Q2", "Q3", "Q4", "Teacher Grade", "Final Grade", "Status"];
   const rows = students.map((s) => [
     s.name,
+    s.q1 ?? "-",
+    s.q2 ?? "-",
+    s.q3 ?? "-",
+    s.q4 ?? "-",
+    s.teacherGrade ?? "-",
     s.finalGrade ?? "-",
-    "-",
     s.status?.toUpperCase() ?? "-",
   ]);
 
   const csvContent = [
-    [subject, "Class", classId],
+    [`Subject: ${subject}`, `Class: ${classId}`, `Level: ${year}`],
     [],
     headers,
     ...rows,
   ]
-    .map((row) => row.join(","))
+    .map((row) => row.map((cell) => `"${cell}"`).join(","))
     .join("\n");
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", `${subject}_${classId}_grades.csv`);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
+  link.setAttribute("href", URL.createObjectURL(blob));
+  link.setAttribute("download", `${subject}_Class${classId}_grades.csv`);
   link.click();
-  document.body.removeChild(link);
 };
+
+// ---------- Quarter Input Cell ----------
+function QuarterCell({
+  value,
+  onChange,
+  label,
+  accentColor,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+  accentColor: string;
+}) {
+  return (
+    <Tooltip title={label} arrow>
+      <TextField
+        size="small"
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        inputProps={{ min: 0, max: 100, style: { textAlign: "center", padding: "6px 4px", width: 52 } }}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 1.5,
+            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: accentColor },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: accentColor },
+          },
+        }}
+      />
+    </Tooltip>
+  );
+}
+
+// ---------- Main Grade Content ----------
+interface StudentGrades {
+  q1: string;
+  q2: string;
+  q3: string;
+  q4: string;
+}
 
 function GradeContent() {
   const theme = useTheme();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const classId = searchParams?.get("classId");
-  const subject = searchParams?.get("subject") || "";
-  const year = searchParams?.get("year") || "";
-  const subjectId = searchParams?.get("subjectId") || "";
+
+  const classId = searchParams?.get("classId") ?? "";
+  const subject = searchParams?.get("subject") ?? "Subject";
+  const year = searchParams?.get("year") ?? "junior";
+  const subjectId = searchParams?.get("subjectId") ?? "";
+
+  const LEVEL_COLORS: Record<string, string> = {
+    junior: "#FFC600",
+    wheeler: "#2196F3",
+    senior: "#9C27B0",
+  };
+  const accentColor = LEVEL_COLORS[year] ?? "#FFC600";
 
   const [students, setStudents] = useState<TeacherStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [grades, setGrades] = useState<Record<string, number>>({});
-  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [grades, setGrades] = useState<Record<string | number, StudentGrades>>({});
+  const [savingId, setSavingId] = useState<string | number | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string | number>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [snackbar, setSnackbar] = useState<string | null>(null);
 
+  // Load students
   useEffect(() => {
+    if (!classId) return;
     let cancelled = false;
-    async function load() {
-      if (!classId) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await teacherService.getClassStudents(classId);
-        if (cancelled) return;
-        setStudents(data.students || []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load students");
-        }
+    setLoading(true);
+    setError(null);
+
+    teacherService.getClassStudents(classId).then((data) => {
+      if (cancelled) return;
+      const sts = data.students || [];
+      setStudents(sts);
+      // Pre-fill grades from API
+      const initGrades: Record<string | number, StudentGrades> = {};
+      sts.forEach((s) => {
+        initGrades[s.id] = {
+          q1: s.q1 != null ? String(s.q1) : "",
+          q2: s.q2 != null ? String(s.q2) : "",
+          q3: s.q3 != null ? String(s.q3) : "",
+          q4: s.q4 != null ? String(s.q4) : "",
+        };
+      });
+      setGrades(initGrades);
+      setLoading(false);
+    }).catch((err) => {
+      if (!cancelled) {
+        setError(err instanceof Error ? err.message : "Failed to load students");
+        setLoading(false);
       }
-      if (!cancelled) setLoading(false);
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
+    });
+
+    return () => { cancelled = true; };
   }, [classId]);
 
   const filtered = students.filter((s) =>
@@ -98,266 +173,411 @@ function GradeContent() {
 
   const passCount = students.filter((s) => s.status === "pass").length;
   const failCount = students.filter((s) => s.status === "fail").length;
+  const avgGrade =
+    students.length > 0 && students.some((s) => s.finalGrade != null)
+      ? (
+          students.reduce((acc, s) => acc + (s.finalGrade ?? 0), 0) /
+          students.filter((s) => s.finalGrade != null).length
+        ).toFixed(1)
+      : null;
 
-  const handleGradeChange = (id: string | number, value: string) => {
-    const num = parseFloat(value);
-    setGrades((prev) => ({ ...prev, [id]: isNaN(num) ? 0 : num }));
+  const getGrade = (id: string | number): StudentGrades =>
+    grades[id] ?? { q1: "", q2: "", q3: "", q4: "" };
+
+  const setStudentGrade = (id: string | number, key: keyof StudentGrades, value: string) => {
+    setGrades((prev) => ({
+      ...prev,
+      [id]: { ...getGrade(id), [key]: value },
+    }));
+    // Remove from saved if modified
+    setSavedIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
   };
 
-  const handleSave = async (id: string | number) => {
-    if (!classId) return;
-    const grade = grades[id];
-    setSaving((p) => ({ ...p, [id]: true }));
+  // Save a single student's grades
+  const handleSave = async (student: TeacherStudent) => {
+    setSavingId(student.id);
+    const g = getGrade(student.id);
+    const q1 = g.q1 !== "" ? Number(g.q1) : undefined;
+    const q2 = g.q2 !== "" ? Number(g.q2) : undefined;
+    const q3 = g.q3 !== "" ? Number(g.q3) : undefined;
+    const q4 = g.q4 !== "" ? Number(g.q4) : undefined;
+    // Teacher grade = average of entered quarters
+    const entered = [q1, q2, q3, q4].filter((v) => v !== undefined) as number[];
+    const teacherGrade = entered.length > 0 ? Math.round(entered.reduce((a, b) => a + b, 0) / entered.length) : 0;
+
     try {
-      await teacherService.saveStudentGrade(classId, id, grade);
-    } catch (e) {
-      console.error(e);
+      await teacherService.saveStudentGrade(classId, student.id, teacherGrade, {
+        q1, q2, q3, q4, subjectId: subjectId || undefined,
+      });
+
+      setSavedIds((prev) => new Set([...prev, student.id]));
+      appToast.success(`Grades saved for ${student.name}`);
+
+      // Notify Vice Principal
+      teacherService.pushNotification({
+        type: "grade",
+        title: "Grades Updated",
+        message: `Teacher updated grades for ${student.name} in ${subject} (Class ${classId}).`,
+        priority: "medium",
+        targetRole: "Admin",
+      });
+
+      // Notify the student (conceptual — same notification system)
+      teacherService.pushNotification({
+        type: "grade",
+        title: "Your grades have been updated",
+        message: `Your ${subject} grades have been entered by your teacher.`,
+        priority: "high",
+        targetRole: "Student",
+      });
+
+    } catch (err) {
+      appToast.error(err instanceof Error ? err.message : "Failed to save grade");
+    } finally {
+      setSavingId(null);
     }
-    setSaving((p) => ({ ...p, [id]: false }));
   };
+
+  // Save ALL students at once
+  const handleSaveAll = async () => {
+    setBulkSaving(true);
+    let successCount = 0;
+    for (const student of filtered) {
+      const g = getGrade(student.id);
+      const q1 = g.q1 !== "" ? Number(g.q1) : undefined;
+      const q2 = g.q2 !== "" ? Number(g.q2) : undefined;
+      const q3 = g.q3 !== "" ? Number(g.q3) : undefined;
+      const q4 = g.q4 !== "" ? Number(g.q4) : undefined;
+      const entered = [q1, q2, q3, q4].filter((v) => v !== undefined) as number[];
+      const teacherGrade = entered.length > 0 ? Math.round(entered.reduce((a, b) => a + b, 0) / entered.length) : 0;
+      try {
+        await teacherService.saveStudentGrade(classId, student.id, teacherGrade, {
+          q1, q2, q3, q4, subjectId: subjectId || undefined,
+        });
+        setSavedIds((prev) => new Set([...prev, student.id]));
+        successCount++;
+      } catch {
+        // continue with next
+      }
+    }
+
+    setBulkSaving(false);
+    appToast.success(`Saved grades for ${successCount}/${filtered.length} students`);
+
+    // One bulk notification to vice
+    if (successCount > 0) {
+      teacherService.pushNotification({
+        type: "grade",
+        title: "Bulk Grade Submission",
+        message: `Grades for ${successCount} students in ${subject} (Class ${classId}) have been submitted.`,
+        priority: "high",
+        targetRole: "Admin",
+      });
+    }
+    setSnackbar(`✅ ${successCount} students' grades saved successfully`);
+  };
+
+  const backUrl = `/teacher/classes?year=${year}`;
 
   return (
     <Box
       sx={{
         minHeight: "100vh",
-        width: "100%",
-        backgroundImage: "url('/Images/download 1 (1).png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        p: 4,
-        overflowY: "auto",
-        overflowX: "hidden",
+        background: `radial-gradient(circle at top right, ${alpha(accentColor, 0.07)}, transparent 50%),
+                     ${theme.palette.background.default}`,
+        pb: 8,
       }}
     >
-      {/* Header Section */}
-      <Box
-        sx={{
-          width: "95%",
-          maxWidth: "1300px",
-          background: "rgba(50,50,50,0.3)",
-          borderRadius: "28px",
-          p: 2,
-          mt: 1,
-          mb: 2,
-        }}
-      >
-        {/* Back Button & Title */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
-          <Button
-            component={Link}
-            href={`/teacher/classes${year ? `?year=${year}` : ""}${
-              subjectId ? `&subject=${subjectId}` : ""
-            }`}
-            startIcon={<ArrowBackIcon />}
-            sx={{
-              color: theme.palette.warning.main,
-              fontSize: "14px",
-              fontWeight: 500,
-              textTransform: "none",
-              padding: "4px 12px",
-              "&:hover": { backgroundColor: "rgba(255, 198, 0, 0.1)" },
-            }}
-          >
-            Back to Classes
-          </Button>
-          <Typography variant="h6" color="#fff">
-            {subject} - Class {classId}
-          </Typography>
-        </Box>
-
-        {/* Stats Section */}
-        {!loading && !error && (
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              mb: 2,
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <Card
-              sx={{
-                background: "rgba(76, 175, 80, 0.1)",
-                border: `2px solid ${theme.palette.success.main}`,
-                p: 2,
-                borderRadius: 2,
-                flex: 1,
-                minWidth: "150px",
-              }}
-            >
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Passed
-              </Typography>
-              <Typography variant="h5" sx={{ color: theme.palette.success.main, fontWeight: "bold" }}>
-                {passCount}
-              </Typography>
-            </Card>
-
-            <Card
-              sx={{
-                background: "rgba(244, 67, 54, 0.1)",
-                border: `2px solid ${theme.palette.error.main}`,
-                p: 2,
-                borderRadius: 2,
-                flex: 1,
-                minWidth: "150px",
-              }}
-            >
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Failed
-              </Typography>
-              <Typography variant="h5" sx={{ color: theme.palette.error.main, fontWeight: "bold" }}>
-                {failCount}
-              </Typography>
-            </Card>
-
+      <Container maxWidth="xl" sx={{ pt: 4 }}>
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4, flexWrap: "wrap" }}>
             <Button
-              variant="contained"
-              startIcon={<GetAppIcon />}
-              onClick={() => exportToExcel(students, subject, classId || "")}
-              sx={{
-                backgroundColor: theme.palette.primary.main,
-                color: "#000",
-                fontWeight: "bold",
-                textTransform: "none",
-                "&:hover": { backgroundColor: theme.palette.primary.main },
-                height: "40px",
-                display: "flex",
-                
-              }}
+              startIcon={<ArrowBackIcon />}
+              onClick={() => router.push(backUrl)}
+              sx={{ color: accentColor, fontWeight: 600, textTransform: "none", "&:hover": { bgcolor: alpha(accentColor, 0.08) } }}
             >
-              Export to Excel
+              Back to Classes
             </Button>
+            <Box sx={{ flex: 1 }} />
+            <Chip
+              label={year.charAt(0).toUpperCase() + year.slice(1)}
+              sx={{ bgcolor: alpha(accentColor, 0.12), color: accentColor, fontWeight: 700, border: `1px solid ${alpha(accentColor, 0.3)}` }}
+            />
+            <Chip label={subject} variant="outlined" />
+            <Chip label={`Class ${classId}`} variant="outlined" />
           </Box>
+
+          <Typography
+            variant="h3"
+            fontWeight={800}
+            sx={{
+              mb: 1,
+              background: `linear-gradient(135deg, ${theme.palette.text.primary}, ${accentColor})`,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Grade Students
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: 4 }}>
+            Enter quarter grades for each student. Grades are automatically sent to the Vice Principal.
+          </Typography>
+        </motion.div>
+
+        {/* Stats Cards */}
+        {!loading && !error && students.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }, gap: 2, mb: 4 }}>
+              {[
+                { label: "Total Students", value: students.length, icon: <PeopleIcon />, color: accentColor },
+                { label: "Passed", value: passCount, icon: <CheckCircleIcon />, color: "#4CAF50" },
+                { label: "Failed", value: failCount, icon: <EmojiEventsIcon />, color: "#F44336" },
+                { label: "Class Avg", value: avgGrade ?? "—", icon: <NotificationsActiveIcon />, color: "#FF9800" },
+              ].map((stat) => (
+                <Box
+                  key={stat.label}
+                  sx={{
+                    p: 2.5,
+                    borderRadius: 3,
+                    background: alpha(stat.color, 0.07),
+                    border: `1px solid ${alpha(stat.color, 0.2)}`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
+                  <Box sx={{ color: stat.color, display: "flex" }}>{stat.icon}</Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      {stat.label}
+                    </Typography>
+                    <Typography variant="h5" fontWeight={800} color={stat.color}>
+                      {stat.value}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </motion.div>
         )}
 
-        {/* Search Field */}
-        <Box sx={{ mb: 2 }}>
-          <TextField
-            variant="outlined"
-            placeholder="Search student"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ background: "#fff", borderRadius: 1, width: "100%" }}
-          />
-        </Box>
-      </Box>
+        {/* Toolbar */}
+        {!loading && !error && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+            <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap", alignItems: "center" }}>
+              <TextField
+                size="small"
+                placeholder="Search student..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flex: 1, minWidth: 200 }}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<GetAppIcon />}
+                onClick={() => exportToExcel(students, subject, classId, year)}
+                sx={{ fontWeight: 600, textTransform: "none", borderColor: accentColor, color: accentColor, "&:hover": { borderColor: accentColor, bgcolor: alpha(accentColor, 0.06) } }}
+              >
+                Export Excel
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={bulkSaving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                onClick={handleSaveAll}
+                disabled={bulkSaving || filtered.length === 0}
+                sx={{
+                  fontWeight: 700,
+                  textTransform: "none",
+                  background: `linear-gradient(135deg, ${accentColor}, ${alpha(accentColor, 0.7)})`,
+                  color: theme.palette.mode === "dark" ? "#000" : "#000",
+                  "&:hover": { filter: "brightness(0.9)" },
+                }}
+              >
+                {bulkSaving ? "Saving All..." : `Save All (${filtered.length})`}
+              </Button>
+            </Box>
+          </motion.div>
+        )}
 
-      {/* Table Section */}
-      <Box
-        sx={{
-          width: "95%",
-          maxWidth: "1300px",
-          background: "rgba(50,50,50,0.3)",
-          borderRadius: "28px",
-          p: 2,
-          mt: 1,
-          mb: 2,
-        }}
-      >
+        {/* Loading */}
         {loading && (
-          <Box sx={{ display: "flex", py: 4 }}>
-            <CircularProgress />
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} variant="rounded" height={56} sx={{ borderRadius: 2 }} />
+            ))}
           </Box>
         )}
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+        {/* Error */}
+        {!loading && error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
+
+        {/* Empty */}
+        {!loading && !error && filtered.length === 0 && (
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            {students.length === 0 ? "No students in this class." : "No students match your search."}
           </Alert>
         )}
 
-        {!loading && !error && filtered.length === 0 && (
-          <Alert severity="info">No students match your search.</Alert>
-        )}
-
-        {!loading && filtered.length > 0 && (
-          <Paper sx={{ borderRadius: 1, background: "#fff", overflow: "hidden" }}>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: theme.palette.primary.main }}>
-                  <TableCell sx={{ fontWeight: 700, fontSize: "18px", color: "#000", py: 2.5 }}>
-                    Student
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700, fontSize: "18px", color: "#000", py: 2.5 }}>
-                    Final Grade
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700, fontSize: "18px", color: "#000", py: 2.5 }}>
-                    Your Grade
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700, fontSize: "18px", color: "#000", py: 2.5 }}>
-                    Status
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700, fontSize: "18px", color: "#000", py: 2.5 }}>
-                    Action
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filtered.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    sx={{
-                      "&:nth-of-type(even)": { backgroundColor: "rgba(0,0,0,0.05)" },
-                      "&:hover": { backgroundColor: "rgba(255,198,0,0.05)" },
-                      transition: "background-color 0.2s ease",
-                    }}
-                  >
-                    <TableCell sx={{ fontSize: "16px", fontWeight: 500, color: "#1a1a1a", py: 2.5 }}>
-                      {row.name}
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontSize: "16px", fontWeight: 600, color: "#333", py: 2.5 }}>
-                      {row.finalGrade ?? "-"}
-                    </TableCell>
-                    <TableCell align="center" sx={{ py: 2.5 }}>
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={grades[row.id] ?? ""}
-                        onChange={(e) => handleGradeChange(row.id, e.target.value)}
-                        inputProps={{ style: { textAlign: "center" } }}
-                      />
-                    </TableCell>
-                    <TableCell align="center" sx={{ py: 2.5 }}>
-                      <Chip
-                        label={row.status?.toUpperCase() ?? "-"}
-                        color={row.status === "pass" ? "success" : "error"}
-                        variant="outlined"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="center" sx={{ py: 2.5 }}>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        disabled={saving[row.id]}
-                        onClick={() => handleSave(row.id)}
-                        sx={{
-                          backgroundColor: theme.palette.primary.main,
-                          color: "#000",
-                          fontWeight: "bold",
-                          textTransform: "none",
-                          "&:hover": { backgroundColor: theme.palette.warning.dark },
-                        }}
+        {/* Table */}
+        {!loading && !error && filtered.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <Paper
+              sx={{
+                borderRadius: 3,
+                overflow: "hidden",
+                border: `1px solid ${alpha(accentColor, 0.15)}`,
+                boxShadow: `0 4px 24px ${alpha(accentColor, 0.06)}`,
+              }}
+            >
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ background: `linear-gradient(90deg, ${alpha(accentColor, 0.15)}, ${alpha(accentColor, 0.05)})` }}>
+                    {["#", "Student Name", "Q1", "Q2", "Q3", "Q4", "Teacher Grade", "Final Grade", "Status", "Action"].map((h) => (
+                      <TableCell
+                        key={h}
+                        align={h === "Student Name" || h === "#" ? "left" : "center"}
+                        sx={{ fontWeight: 800, fontSize: "0.82rem", color: theme.palette.text.primary, py: 2, whiteSpace: "nowrap" }}
                       >
-                        {saving[row.id] ? "Saving..." : "Save"}
-                      </Button>
-                    </TableCell>
+                        {h}
+                      </TableCell>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Paper>
+                </TableHead>
+                <TableBody>
+                  {filtered.map((student, rowIdx) => {
+                    const g = getGrade(student.id);
+                    const isSaving = savingId === student.id;
+                    const isSaved = savedIds.has(student.id);
+                    const entered = [g.q1, g.q2, g.q3, g.q4]
+                      .filter((v) => v !== "")
+                      .map(Number)
+                      .filter((n) => !isNaN(n));
+                    const computedTeacherGrade =
+                      entered.length > 0
+                        ? Math.round(entered.reduce((a, b) => a + b, 0) / entered.length)
+                        : null;
+
+                    return (
+                      <motion.tr
+                        key={student.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: rowIdx * 0.03 }}
+                        style={{ display: "table-row" }}
+                      >
+                        <TableCell sx={{ color: "text.secondary", fontWeight: 600, py: 1.5 }}>
+                          {rowIdx + 1}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, py: 1.5 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                            <Box
+                              sx={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: "50%",
+                                bgcolor: alpha(accentColor, 0.15),
+                                color: accentColor,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 800,
+                                fontSize: "0.75rem",
+                              }}
+                            >
+                              {student.name.charAt(0).toUpperCase()}
+                            </Box>
+                            {student.name}
+                            {isSaved && <CheckCircleIcon sx={{ fontSize: 16, color: "#4CAF50" }} />}
+                          </Box>
+                        </TableCell>
+                        {(["q1", "q2", "q3", "q4"] as const).map((q) => (
+                          <TableCell key={q} align="center" sx={{ py: 1.5 }}>
+                            <QuarterCell
+                              label={q.toUpperCase()}
+                              value={g[q]}
+                              onChange={(v) => setStudentGrade(student.id, q, v)}
+                              accentColor={accentColor}
+                            />
+                          </TableCell>
+                        ))}
+                        <TableCell align="center" sx={{ py: 1.5 }}>
+                          <Typography fontWeight={700} color={accentColor}>
+                            {computedTeacherGrade ?? (student.teacherGrade ?? "—")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1.5 }}>
+                          <Typography fontWeight={600} color="text.secondary">
+                            {student.finalGrade ?? "—"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1.5 }}>
+                          {student.status ? (
+                            <Chip
+                              label={student.status.toUpperCase()}
+                              size="small"
+                              sx={{
+                                bgcolor: student.status === "pass" ? alpha("#4CAF50", 0.12) : alpha("#F44336", 0.12),
+                                color: student.status === "pass" ? "#4CAF50" : "#F44336",
+                                border: `1px solid ${student.status === "pass" ? alpha("#4CAF50", 0.3) : alpha("#F44336", 0.3)}`,
+                                fontWeight: 700,
+                                fontSize: "0.7rem",
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">Pending</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1.5 }}>
+                          <Button
+                            size="small"
+                            variant={isSaved ? "outlined" : "contained"}
+                            disabled={isSaving}
+                            onClick={() => handleSave(student)}
+                            startIcon={isSaving ? <CircularProgress size={12} /> : isSaved ? <CheckCircleIcon /> : <SaveIcon />}
+                            sx={{
+                              fontWeight: 700,
+                              textTransform: "none",
+                              fontSize: "0.75rem",
+                              borderRadius: 2,
+                              ...(isSaved
+                                ? { color: "#4CAF50", borderColor: "#4CAF50" }
+                                : {
+                                    background: `linear-gradient(135deg, ${accentColor}, ${alpha(accentColor, 0.75)})`,
+                                    color: "#000",
+                                    border: "none",
+                                    "&:hover": { filter: "brightness(0.9)" },
+                                  }),
+                            }}
+                          >
+                            {isSaving ? "..." : isSaved ? "Saved" : "Save"}
+                          </Button>
+                        </TableCell>
+                      </motion.tr>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Paper>
+          </motion.div>
         )}
-      </Box>
+      </Container>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={!!snackbar}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(null)}
+        message={snackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Box>
   );
 }
@@ -366,7 +586,7 @@ export default function GradePage() {
   return (
     <Suspense
       fallback={
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
           <CircularProgress />
         </Box>
       }
