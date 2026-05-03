@@ -86,8 +86,9 @@ const tryFetchDashboardRows = async (): Promise<TeacherDashboardRow[] | null> =>
           ?? (payload as { assignments?: unknown }).assignments
           ?? (payload as { value?: unknown }).value;
         if (Array.isArray(wrappedRows)) return wrappedRows as TeacherDashboardRow[];
+        if (Array.isArray(payload)) return payload as TeacherDashboardRow[];
       }
-      return [];
+      return Array.isArray(payload) ? payload : [];
     } catch (error) {
       if (isNotFoundError(error)) continue;
       throw error;
@@ -214,13 +215,21 @@ export async function getTeacherSubjects(): Promise<TeacherSubject[]> {
 }
 
 export async function getTeacherProfile(): Promise<TeacherProfileResponse> {
-  const me = (await secureFetch(`${API_BASE_URL}/Auth/me`)) as AuthMeResponse;
-  const displayName = me.fullName?.trim() || me.username?.trim() || "Teacher";
-  return {
-    name: displayName,
-    subtitle: "Manage your subjects and classes",
-    currentAcademicYear: "junior",
-  };
+  try {
+    const me = (await secureFetch(`${API_BASE_URL}/Auth/me`)) as AuthMeResponse;
+    const displayName = me?.fullName?.trim() || me?.username?.trim() || "Teacher";
+    return {
+      name: displayName,
+      subtitle: "Manage your subjects and classes",
+      currentAcademicYear: "junior",
+    };
+  } catch {
+    return {
+      name: "Teacher",
+      subtitle: "Manage your subjects and classes",
+      currentAcademicYear: "junior",
+    };
+  }
 }
 
 /**
